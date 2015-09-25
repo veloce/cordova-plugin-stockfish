@@ -4,7 +4,7 @@ package org.lichess.stockfish;
 public class CordovaPluginStockfishJNI {
 
   static {
-    System.loadLibrary("stockfishcli");
+    System.loadLibrary("stockfishjni");
   }
 
   public static native void init();

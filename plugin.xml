@@ -11,8 +11,8 @@
   </js-module>
   <platform name="android">
     <source-file src="src/android/jni" target-dir="." />
-    <source-file src="src/android/org.lichess.stockfish/CordovaPluginStockfish.java" target-dir="src/org/lichess.stockfish" />
-    <source-file src="src/android/org.lichess.stockfish/CordovaPluginStockfishJNI.java" target-dir="src/org/lichess.stockfish" />
+    <source-file src="src/android/org.lichess.stockfish/CordovaPluginStockfish.java" target-dir="src/org/lichess/stockfish" />
+    <source-file src="src/android/org.lichess.stockfish/CordovaPluginStockfishJNI.java" target-dir="src/org/lichess/stockfish" />
     <config-file target="res/xml/config.xml" parent="/*">
       <feature name="CordovaPluginStockfish">
         <param name="android-package" value="org.lichess.stockfish.CordovaPluginStockfish" />
