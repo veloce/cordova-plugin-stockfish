@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="org.lichess.stockfish" version="1.0.0">
-    <name>CordovaPluginStockfish</name>
-    <description></description>
-    <author></author>
-    <keywords></keywords>
-    <license></license>
+  <name>CordovaPluginStockfish</name>
+  <description></description>
+  <author></author>
+  <keywords></keywords>
+  <license></license>
 
-    <js-module src="www/CordovaPluginStockfish.js" name="CordovaPluginStockfish">
-        <clobbers target="CordovaPluginStockfish" />
-    </js-module>
-    <platform name="android">
-        <config-file target="res/xml/config.xml" parent="/*">
-            <feature name="CordovaPluginStockfish">
-                <param name="android-package" value="org.lichess.stockfish.CordovaPluginStockfish" />
-            </feature>
-        </config-file>
-        <source-file src="android/src/CordovaPluginStockfish.java" target-dir="src/org/lichess.stockfish" />
-
-    </platform>
-
+  <js-module src="www/CordovaPluginStockfish.js" name="CordovaPluginStockfish">
+    <clobbers target="CordovaPluginStockfish" />
+  </js-module>
+  <platform name="android">
+    <config-file target="res/xml/config.xml" parent="/*">
+      <feature name="CordovaPluginStockfish">
+        <param name="android-package" value="org.lichess.stockfish.CordovaPluginStockfish" />
+      </feature>
+    </config-file>
+    <source-file src="android/src/CordovaPluginStockfish.java" target-dir="src/org/lichess.stockfish" />
+  </platform>
 </plugin>

@@ -1,7 +1,15 @@
-module.exports.toUpper = function (success, error, str) {
-    if (typeof str !== 'string') {
-        error('toUpper must be called with a single string parameter.');
-    } else {
-        cordova.exec(success, error, 'CordovaPluginStockfish', 'toUpper', [str]);
-    }
+module.exports.init = function (success, error) {
+  cordova.exec(success, error, 'CordovaPluginStockfish', 'init', []);
+};
+
+module.exports.cmd = function (success, error, cmd) {
+  if (typeof cmd !== 'string') {
+    error('cmd must be called with a single string parameter.');
+  } else {
+    cordova.exec(success, error, 'CordovaPluginStockfish', 'cmd', [cmd]);
+  }
+};
+
+module.exports.exit = function (success, error) {
+  cordova.exec(success, error, 'CordovaPluginStockfish', 'exit', []);
 };
