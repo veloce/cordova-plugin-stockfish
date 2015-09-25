@@ -21,14 +21,25 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
   }
 
   private void init(CallbackContext callbackContext) throws JSONException {
+    CordovaPluginStockfishJNI.init();
     callbackContext.success();
   }
 
-  private void cmd(JSONArray args, CallbackContext callbackContext) throws JSONException {
-    callbackContext.success("bestmove e7e5");
+  private void cmd(final JSONArray args, final CallbackContext callbackContext) throws JSONException {
+    this.cordova.getThreadPool().execute(new Runnable() {
+      public void run() {
+        try {
+          String cmd = args.getString(0);
+          callbackContext.success(CordovaPluginStockfishJNI.cmd(cmd));
+        } catch (JSONException e) {
+          callbackContext.error("Unable to perform `cmd`: " + e.getMessage());
+        }
+      }
+    });
   }
 
   private void exit(CallbackContext callbackContext) throws JSONException {
+    CordovaPluginStockfishJNI.exit();
     callbackContext.success();
   }
 }
