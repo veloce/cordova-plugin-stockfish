@@ -7,7 +7,7 @@
   <license></license>
 
   <js-module src="www/CordovaPluginStockfish.js" name="CordovaPluginStockfish">
-    <clobbers target="CordovaPluginStockfish" />
+    <clobbers target="Stockfish" />
   </js-module>
   <platform name="android">
     <config-file target="res/xml/config.xml" parent="/*">
