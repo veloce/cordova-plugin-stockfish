@@ -10,9 +10,9 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
   public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
     if (action.equals("init")) {
       init(callbackContext);
-    } else if (action.equals("cmd") {
+    } else if (action.equals("cmd")) {
       cmd(args, callbackContext);
-    } else if (action.equals("exit") {
+    } else if (action.equals("exit")) {
       exit(callbackContext);
     } else {
       return false;
