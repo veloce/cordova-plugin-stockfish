@@ -25,7 +25,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
   }
 
   private void cmd(JSONArray args, CallbackContext callbackContext) throws JSONException {
-    callbackContext.success(args.getString(0));
+    callbackContext.success("bestmove e7e5");
   }
 
   private void exit(CallbackContext callbackContext) throws JSONException {
