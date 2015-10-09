@@ -30,7 +30,8 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
       public void run() {
         try {
           String cmd = args.getString(0);
-          callbackContext.success(CordovaPluginStockfishJNI.cmd(cmd));
+          CordovaPluginStockfishJNI.cmd(cmd);
+          callbackContext.success();
         } catch (JSONException e) {
           callbackContext.error("Unable to perform `cmd`: " + e.getMessage());
         }

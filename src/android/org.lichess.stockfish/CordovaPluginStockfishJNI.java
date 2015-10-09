@@ -11,5 +11,5 @@ public class CordovaPluginStockfishJNI {
 
   public static native void exit();
 
-  public static native String cmd(String cmd);
+  public static native void cmd(String cmd);
 }

@@ -2,12 +2,17 @@
 #include <string>
 #include <stockfishcli.h>
 #include <search.cpp>
+#include <android/log.h>
+
+#define LOGD(TAG,...) __android_log_print(ANDROID_LOG_DEBUG  , TAG,__VA_ARGS__)
 
 extern "C" {
   JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_init(JNIEnv *env, jclass clazz);
   JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_exit(JNIEnv *env, jclass clazz);
-  JNIEXPORT jstring JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_cmd(JNIEnv *env, jclass clazz, jstring cmd);
+  JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_cmd(JNIEnv *env, jclass clazz, jstring jcmd);
 };
+
+bool run = false;
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_init(JNIEnv *env, jclass clazz) {
   UCI::init(Options);
@@ -21,21 +26,33 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_init
   Threads.init();
   Tablebases::init(Options["SyzygyPath"]);
   TT.resize(Options["Hash"]);
+
+  auto readstdout = []() {
+    std::streambuf* out = std::cout.rdbuf();
+    std::stringstream inout;
+    std::cout.rdbuf(inout.rdbuf());
+
+    run = true;
+
+    while(run) {
+      char line[256];
+      inout.getline(line, 256);
+      LOGD("stockfishcli", "##> %s", line);
+    }
+
+    std::cout.rdbuf(out);
+  };
+
+  std::thread reader (readstdout);
 }
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_exit(JNIEnv *env, jclass clazz) {
-  //TODO
+  run = false;
 }
 
-JNIEXPORT jstring JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_cmd(JNIEnv *env, jclass clazz, jstring jcmd) {
+JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_cmd(JNIEnv *env, jclass clazz, jstring jcmd) {
   const char *cmd = env->GetStringUTFChars(jcmd, (jboolean *)0);
-  std::streambuf* originOut = std::cout.rdbuf();
-  std::ostringstream myout;
-  std::cout.rdbuf(myout.rdbuf());
   stockfishcli::commandInit();
   stockfishcli::command(cmd);
-  Threads.main()->join();
-  std::cout.rdbuf(originOut);
   env->ReleaseStringUTFChars(jcmd, cmd);
-  return env->NewStringUTF(myout.str().c_str());
 }
