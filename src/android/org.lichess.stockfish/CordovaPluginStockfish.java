@@ -6,6 +6,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 public final class CordovaPluginStockfish extends CordovaPlugin {
+
+  static {
+    System.loadLibrary("stockfishjni");
+  }
+
   @Override
   public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
     if (action.equals("init")) {
@@ -21,7 +26,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
   }
 
   private void init(CallbackContext callbackContext) throws JSONException {
-    CordovaPluginStockfishJNI.init();
+    jniInit();
     callbackContext.success();
   }
 
@@ -30,7 +35,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
       public void run() {
         try {
           String cmd = args.getString(0);
-          CordovaPluginStockfishJNI.cmd(cmd);
+          jniCmd(cmd);
           callbackContext.success();
         } catch (JSONException e) {
           callbackContext.error("Unable to perform `cmd`: " + e.getMessage());
@@ -40,7 +45,19 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
   }
 
   private void exit(CallbackContext callbackContext) throws JSONException {
-    CordovaPluginStockfishJNI.exit();
+    jniExit();
     callbackContext.success();
   }
+
+  // JNI stuff
+
+  public void f(String s) {
+    android.util.Log.d("LICHOBILE", s);
+  }
+
+  public native void jniInit();
+
+  public native void jniExit();
+
+  public native void jniCmd(String cmd);
 }

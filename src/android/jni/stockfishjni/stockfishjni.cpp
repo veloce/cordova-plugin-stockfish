@@ -7,9 +7,9 @@
 #define LOGD(TAG,...) __android_log_print(ANDROID_LOG_DEBUG  , TAG,__VA_ARGS__)
 
 extern "C" {
-  JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_init(JNIEnv *env, jclass clazz);
-  JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_exit(JNIEnv *env, jclass clazz);
-  JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_cmd(JNIEnv *env, jclass clazz, jstring jcmd);
+  JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit(JNIEnv *env, jobject obj);
+  JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniExit(JNIEnv *env, jobject obj);
+  JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniCmd(JNIEnv *env, jobject obj, jstring jcmd);
 };
 
 bool run = false;
@@ -41,7 +41,7 @@ auto readstdout = []() {
 
 std::thread reader (readstdout);
 
-JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_init(JNIEnv *env, jclass clazz) {
+JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit(JNIEnv *env, jobject obj) {
   UCI::init(Options);
   PSQT::init();
   Bitboards::init();
@@ -53,13 +53,18 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_init
   Threads.init();
   Tablebases::init(Options["SyzygyPath"]);
   TT.resize(Options["Hash"]);
+
+  jclass jstockfish = env->FindClass("org/lichess/stockfish/CordovaPluginStockfish");
+  jmethodID f = env->GetMethodID(jstockfish, "f", "(Ljava/lang/String;)V");
+  jstring msg = env->NewStringUTF("Pong");
+  env->CallVoidMethod(obj, f, msg);
 }
 
-JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_exit(JNIEnv *env, jclass clazz) {
+JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniExit(JNIEnv *env, jobject obj) {
   run = false;
 }
 
-JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfishJNI_cmd(JNIEnv *env, jclass clazz, jstring jcmd) {
+JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniCmd(JNIEnv *env, jobject obj, jstring jcmd) {
   const char *cmd = env->GetStringUTFChars(jcmd, (jboolean *)0);
   LOGD("stockfishcli", "cmd %s", cmd);
   stockfishcli::commandInit();
