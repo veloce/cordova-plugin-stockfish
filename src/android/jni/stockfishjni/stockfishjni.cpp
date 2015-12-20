@@ -12,14 +12,21 @@ extern "C" {
   JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniCmd(JNIEnv *env, jobject obj, jstring jcmd);
 };
 
+static JavaVM *jvm;
+static jobject jobj;
+static jmethodID f;
+
 bool run = false;
 
 auto readstdout = []() {
+  JNIEnv *jenv;
+
+  jvm->GetEnv((void **)&jenv, JNI_VERSION_1_6);
+  jvm->AttachCurrentThread(&jenv, (void*) NULL);
+
   std::streambuf* out = std::cout.rdbuf();
   std::ostringstream lichout;
   std::cout.rdbuf(lichout.rdbuf());
-
-  LOGD("stockfishcli", "##> UP");
 
   run = true;
 
@@ -27,21 +34,26 @@ auto readstdout = []() {
     std::string output = lichout.str();
     lichout.str("");
 
-    std::istringstream lichin(output);
-    char line[1024];
-    lichin.getline(line, 1024);
-
-    if(strlen(line) > 0) {
-      LOGD("stockfishcli", "##> %s", line);
+    if(output.length() > 0) {
+      jenv->CallVoidMethod(jobj, f, jenv->NewStringUTF(output.c_str()));
     }
   };
 
   std::cout.rdbuf(out);
+
+  jvm->DetachCurrentThread();
 };
 
-std::thread reader (readstdout);
+std::thread reader;
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit(JNIEnv *env, jobject obj) {
+  jobj = env->NewGlobalRef(obj);
+  env->GetJavaVM(&jvm);
+  jclass classStockfish = env->GetObjectClass(obj);
+  f = env->GetMethodID(classStockfish, "f", "(Ljava/lang/String;)V");
+
+  reader = std::thread(readstdout);
+
   UCI::init(Options);
   PSQT::init();
   Bitboards::init();
@@ -53,11 +65,6 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit
   Threads.init();
   Tablebases::init(Options["SyzygyPath"]);
   TT.resize(Options["Hash"]);
-
-  jclass jstockfish = env->FindClass("org/lichess/stockfish/CordovaPluginStockfish");
-  jmethodID f = env->GetMethodID(jstockfish, "f", "(Ljava/lang/String;)V");
-  jstring msg = env->NewStringUTF("Pong");
-  env->CallVoidMethod(obj, f, msg);
 }
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniExit(JNIEnv *env, jobject obj) {

@@ -53,6 +53,8 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
 
   public void f(String s) {
     android.util.Log.d("LICHOBILE", s);
+    this.webView.getPluginManager().postMessage("*", s);
+    webView.postMessage("*", s);
   }
 
   public native void jniInit();
