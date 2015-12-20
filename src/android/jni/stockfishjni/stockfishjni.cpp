@@ -14,7 +14,7 @@ extern "C" {
 
 static JavaVM *jvm;
 static jobject jobj;
-static jmethodID f;
+static jmethodID onMessage;
 
 bool run = false;
 
@@ -32,11 +32,14 @@ auto readstdout = []() {
 
   while(run) {
     std::string output = lichout.str();
-    lichout.str("");
 
     if(output.length() > 0) {
-      jenv->CallVoidMethod(jobj, f, jenv->NewStringUTF(output.c_str()));
+      const char* coutput = output.c_str();
+      jstring joutput = jenv->NewStringUTF(coutput);
+      jenv->CallVoidMethod(jobj, onMessage, joutput);
     }
+
+    lichout.str("");
   };
 
   std::cout.rdbuf(out);
@@ -50,7 +53,7 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit
   jobj = env->NewGlobalRef(obj);
   env->GetJavaVM(&jvm);
   jclass classStockfish = env->GetObjectClass(obj);
-  f = env->GetMethodID(classStockfish, "f", "(Ljava/lang/String;)V");
+  onMessage = env->GetMethodID(classStockfish, "onMessage", "(Ljava/lang/String;)V");
 
   reader = std::thread(readstdout);
 
@@ -73,7 +76,6 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniExit
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniCmd(JNIEnv *env, jobject obj, jstring jcmd) {
   const char *cmd = env->GetStringUTFChars(jcmd, (jboolean *)0);
-  LOGD("stockfishcli", "cmd %s", cmd);
   stockfishcli::commandInit();
   stockfishcli::command(cmd);
   env->ReleaseStringUTFChars(jcmd, cmd);
