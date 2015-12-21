@@ -35,8 +35,10 @@ auto readstdout = []() {
 
     if(output.length() > 0) {
       const char* coutput = output.c_str();
-      jstring joutput = jenv->NewStringUTF(coutput);
-      jenv->CallVoidMethod(jobj, onMessage, joutput);
+      int len = output.length();
+      jbyteArray aoutput = jenv->NewByteArray(len);
+      jenv->SetByteArrayRegion (aoutput, 0, len, (jbyte*)coutput);
+      jenv->CallVoidMethod(jobj, onMessage, aoutput);
     }
 
     lichout.str("");
@@ -53,7 +55,7 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit
   jobj = env->NewGlobalRef(obj);
   env->GetJavaVM(&jvm);
   jclass classStockfish = env->GetObjectClass(obj);
-  onMessage = env->GetMethodID(classStockfish, "onMessage", "(Ljava/lang/String;)V");
+  onMessage = env->GetMethodID(classStockfish, "onMessage", "([B)V");
 
   reader = std::thread(readstdout);
 
