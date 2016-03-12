@@ -10,6 +10,10 @@ module.exports.cmd = function (cmd, success, error) {
   }
 };
 
+module.exports.output = function (success, error) {
+  cordova.exec(success, error, 'CordovaPluginStockfish', 'output', []);
+};
+
 module.exports.exit = function (success, error) {
   cordova.exec(success, error, 'CordovaPluginStockfish', 'exit', []);
 };

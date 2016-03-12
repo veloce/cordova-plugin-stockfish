@@ -2,10 +2,13 @@ package org.lichess.stockfish;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 
 public final class CordovaPluginStockfish extends CordovaPlugin {
+
+  private CallbackContext outputCallbackContext;
 
   static {
     System.loadLibrary("stockfishjni");
@@ -17,6 +20,8 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
       init(callbackContext);
     } else if (action.equals("cmd")) {
       cmd(args, callbackContext);
+    } else if (action.equals("output")) {
+      output(callbackContext);
     } else if (action.equals("exit")) {
       exit(callbackContext);
     } else {
@@ -44,16 +49,33 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
     });
   }
 
+  private void output(CallbackContext callbackContext) {
+    this.outputCallbackContext = callbackContext;
+    PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
+    pluginResult.setKeepCallback(true);
+    callbackContext.sendPluginResult(pluginResult);
+  }
+
   private void exit(CallbackContext callbackContext) throws JSONException {
     jniExit();
     callbackContext.success();
   }
 
+  private void sendOutput(String output) {
+    if (outputCallbackContext != null) {
+      PluginResult result = new PluginResult(PluginResult.Status.OK, output);
+      result.setKeepCallback(true);
+      outputCallbackContext.sendPluginResult(result);
+    }
+    webView.postMessage("stockfish", output);
+  }
+
   // JNI stuff
 
   public void onMessage(byte[] b) {
-    String s = new String(b);
-    android.util.Log.d("LICHOBILE", s);
+    String output = new String(b);
+    android.util.Log.d("LICHOBILE", output);
+    sendOutput(output);
   }
 
   public native void jniInit();
