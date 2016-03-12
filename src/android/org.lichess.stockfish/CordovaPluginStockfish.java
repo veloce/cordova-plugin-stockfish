@@ -10,6 +10,8 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
 
   private CallbackContext outputCallbackContext;
 
+  private boolean isInit = false;
+
   static {
     System.loadLibrary("stockfishjni");
   }
@@ -30,23 +32,32 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
     return true;
   }
 
-  private void init(CallbackContext callbackContext) throws JSONException {
-    jniInit();
-    callbackContext.success();
+  private void init(CallbackContext callbackContext) {
+    if(!isInit) {
+      jniInit();
+      callbackContext.success();
+      isInit = true;
+    } else {
+      callbackContext.error("Stockfish is already initialized");
+    }
   }
 
   private void cmd(final JSONArray args, final CallbackContext callbackContext) throws JSONException {
-    this.cordova.getThreadPool().execute(new Runnable() {
-      public void run() {
-        try {
-          String cmd = args.getString(0);
-          jniCmd(cmd);
-          callbackContext.success();
-        } catch (JSONException e) {
-          callbackContext.error("Unable to perform `cmd`: " + e.getMessage());
-        }
-      }
-    });
+    if(isInit) {
+      this.cordova.getThreadPool().execute(new Runnable() {
+          public void run() {
+            try {
+              String cmd = args.getString(0);
+              jniCmd(cmd);
+              callbackContext.success();
+            } catch (JSONException e) {
+              callbackContext.error("Unable to perform `cmd`: " + e.getMessage());
+            }
+          }
+        });
+    } else {
+      callbackContext.error("Please exec init before doing anything");
+    }
   }
 
   private void output(CallbackContext callbackContext) {
@@ -57,8 +68,12 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
   }
 
   private void exit(CallbackContext callbackContext) throws JSONException {
-    jniExit();
-    callbackContext.success();
+    if(isInit) {
+      jniExit();
+      callbackContext.success();
+    } else {
+      callbackContext.error("Stockfish isn't currently running!");
+    }
   }
 
   private void sendOutput(String output) {
@@ -74,7 +89,6 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
 
   public void onMessage(byte[] b) {
     String output = new String(b);
-    android.util.Log.d("LICHOBILE", output);
     sendOutput(output);
   }
 
