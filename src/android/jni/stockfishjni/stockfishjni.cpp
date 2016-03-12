@@ -1,6 +1,7 @@
 #include <jni.h>
 #include <string>
 #include <stockfishcli.h>
+#include <threadbuf.h>
 #include <search.cpp>
 #include <android/log.h>
 
@@ -24,27 +25,29 @@ auto readstdout = []() {
   jvm->GetEnv((void **)&jenv, JNI_VERSION_1_6);
   jvm->AttachCurrentThread(&jenv, (void*) NULL);
 
-  std::streambuf* out = std::cout.rdbuf();
-  std::ostringstream lichout;
+  std::streambuf* out = std::cout.rdbuf(); // save output standard
+
+  threadbuf lichbuf;
+  std::ostream lichout(&lichbuf);
   std::cout.rdbuf(lichout.rdbuf());
+  std::istream lichin(&lichbuf);
 
   run = true;
 
   while(run) {
-    std::string output = lichout.str();
+    std::string line;
+    std::getline(lichin, line);
 
-    if(output.length() > 0) {
-      const char* coutput = output.c_str();
-      int len = output.length();
-      jbyteArray aoutput = jenv->NewByteArray(len);
-      jenv->SetByteArrayRegion (aoutput, 0, len, (jbyte*)coutput);
-      jenv->CallVoidMethod(jobj, onMessage, aoutput);
-    }
-
-    lichout.str("");
+    const char* coutput = line.c_str();
+    int len = strlen(coutput);
+    jbyteArray aoutput = jenv->NewByteArray(len);
+    jenv->SetByteArrayRegion (aoutput, 0, len, (jbyte*)coutput);
+    jenv->CallVoidMethod(jobj, onMessage, aoutput);
   };
 
-  std::cout.rdbuf(out);
+
+  std::cout.rdbuf(out); // restore output standard
+  lichbuf.close();
 
   jvm->DetachCurrentThread();
 };
