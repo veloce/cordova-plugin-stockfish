@@ -17,7 +17,7 @@ static JavaVM *jvm;
 static jobject jobj;
 static jmethodID onMessage;
 
-bool run = false;
+static std::string CMD_EXIT = "stockfish:exit";
 
 auto readstdout = []() {
   JNIEnv *jenv;
@@ -25,30 +25,34 @@ auto readstdout = []() {
   jvm->GetEnv((void **)&jenv, JNI_VERSION_1_6);
   jvm->AttachCurrentThread(&jenv, (void*) NULL);
 
-  std::streambuf* out = std::cout.rdbuf(); // save output standard
+  // Save standard output
+  std::streambuf* out = std::cout.rdbuf();
 
   threadbuf lichbuf;
   std::ostream lichout(&lichbuf);
   std::cout.rdbuf(lichout.rdbuf());
   std::istream lichin(&lichbuf);
 
-  run = true;
+  std::string o = "";
 
-  while(run) {
+  while(o != CMD_EXIT) {
     std::string line;
     std::getline(lichin, line);
-
-    const char* coutput = line.c_str();
-    int len = strlen(coutput);
-    jbyteArray aoutput = jenv->NewByteArray(len);
-    jenv->SetByteArrayRegion (aoutput, 0, len, (jbyte*)coutput);
-    jenv->CallVoidMethod(jobj, onMessage, aoutput);
+    if(line != CMD_EXIT) {
+      const char* coutput = line.c_str();
+      int len = strlen(coutput);
+      jbyteArray aoutput = jenv->NewByteArray(len);
+      jenv->SetByteArrayRegion (aoutput, 0, len, (jbyte*)coutput);
+      jenv->CallVoidMethod(jobj, onMessage, aoutput);
+    } else {
+      o = CMD_EXIT;
+    }
   };
 
+  // Restore output standard
+  std::cout.rdbuf(out);
 
-  std::cout.rdbuf(out); // restore output standard
   lichbuf.close();
-
   jvm->DetachCurrentThread();
 };
 
@@ -76,7 +80,9 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit
 }
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniExit(JNIEnv *env, jobject obj) {
-  run = false;
+  sync_cout << CMD_EXIT << sync_endl;
+  reader.join();
+  Threads.main()->join();
 }
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniCmd(JNIEnv *env, jobject obj, jstring jcmd) {

@@ -71,6 +71,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
     if(isInit) {
       jniExit();
       callbackContext.success();
+      isInit = false;
     } else {
       callbackContext.error("Stockfish isn't currently running!");
     }
