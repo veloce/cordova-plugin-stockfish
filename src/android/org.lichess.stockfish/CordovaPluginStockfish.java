@@ -69,6 +69,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
 
   private void exit(CallbackContext callbackContext) throws JSONException {
     if(isInit) {
+      jniCmd("stop");
       jniExit();
       callbackContext.success();
       isInit = false;
