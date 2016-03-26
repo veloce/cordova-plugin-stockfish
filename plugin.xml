@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="org.lichess.stockfish" version="1.0.0">
-  <name>CordovaPluginStockfish</name>
-  <description></description>
-  <author></author>
-  <keywords></keywords>
-  <license></license>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-stockfish" version="1.0.0">
+  <name>Cordova Stockfish Plugin</name>
+  <description>Cordova interface to Stockfish chess engine.</description>
+  <author>Sébastien Renault</author>
+  <keywords>cordova,stockfish</keywords>
+  <license>MIT</license>
 
   <js-module src="www/CordovaPluginStockfish.js" name="CordovaPluginStockfish">
     <clobbers target="Stockfish" />
