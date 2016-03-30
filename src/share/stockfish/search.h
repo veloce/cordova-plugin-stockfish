@@ -97,7 +97,7 @@ struct SignalsType {
   bool stop, stopOnPonderhit, firstRootMove, failedLowAtRoot;
 };
 
-typedef std::unique_ptr<std::stack<StateInfo>> StateStackPtr;
+typedef std::unique_ptr<std::stack<StateInfo> > StateStackPtr;
 
 extern volatile SignalsType Signals;
 extern LimitsType Limits;

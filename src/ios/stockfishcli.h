@@ -1,7 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <position.h>
+#include "position.h"
 
 namespace stockfishcli
 {

@@ -1,16 +1,14 @@
-#include <stockfishcli.h>
-
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <evaluate.h>
-#include <movegen.h>
-#include <position.h>
-#include <search.h>
-#include <thread.h>
-#include <timeman.h>
-#include <tt.h>
-#include <uci.h>
+#include "evaluate.h"
+#include "movegen.h"
+#include "position.h"
+#include "search.h"
+#include "thread.h"
+#include "timeman.h"
+#include "tt.h"
+#include "uci.h"
 
 namespace stockfishcli
 {

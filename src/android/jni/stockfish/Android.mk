@@ -3,6 +3,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 stockfish_src_files := \
+    benchmark.cpp                                                \
     bitbase.cpp                                                  \
     bitboard.cpp                                                 \
     endgame.cpp                                                  \
