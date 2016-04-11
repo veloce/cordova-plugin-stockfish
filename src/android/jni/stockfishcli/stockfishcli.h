@@ -12,6 +12,4 @@ namespace stockfishcli
   void go(const Position& pos, std::istringstream& is);
 
   void command(const std::string& cmd);
-
-  void commandInit();
 }

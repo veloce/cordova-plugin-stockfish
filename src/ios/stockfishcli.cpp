@@ -113,11 +113,6 @@ namespace stockfishcli
 
   Position pos;
 
-  void commandInit() {
-    pos = Position(stockfishcli::StartFEN, false, Threads.main()); // The root position
-  }
-
-
   void command(const std::string& cmd) {
     std::string token;
     std::istringstream is(cmd);

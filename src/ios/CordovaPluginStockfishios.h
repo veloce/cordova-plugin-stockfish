@@ -61,7 +61,6 @@ namespace stockfishios
   }
 
   void cmd(std::string cmd) {
-    stockfishcli::commandInit();
     stockfishcli::command(cmd);
   }
 

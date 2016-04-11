@@ -87,7 +87,6 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniExit
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniCmd(JNIEnv *env, jobject obj, jstring jcmd) {
   const char *cmd = env->GetStringUTFChars(jcmd, (jboolean *)0);
-  stockfishcli::commandInit();
   stockfishcli::command(cmd);
   env->ReleaseStringUTFChars(jcmd, cmd);
 }
