@@ -44,6 +44,7 @@ auto readstdout = []() {
       jbyteArray aoutput = jenv->NewByteArray(len);
       jenv->SetByteArrayRegion (aoutput, 0, len, (jbyte*)coutput);
       jenv->CallVoidMethod(jobj, onMessage, aoutput);
+      jenv->DeleteLocalRef(aoutput);
     } else {
       o = CMD_EXIT;
     }
