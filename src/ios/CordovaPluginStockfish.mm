@@ -58,6 +58,7 @@ NSNumber *isInit = @FALSE;
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         stockfishios::cmd("stop");
         stockfishios::exit();
+        isInit = @FALSE;
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
   } else {
