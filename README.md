@@ -4,7 +4,7 @@ Cordova interface for the Stockfish chess engine.
 
 ## Exemple app
 
-https://github.com/srenault/stockfishdroid/tree/master
+https://github.com/srenault/stockfishm/tree/master
 
 ## Requirements
 
