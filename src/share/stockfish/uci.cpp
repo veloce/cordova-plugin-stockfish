@@ -2,6 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,8 +36,12 @@ extern void benchmark(const Position& pos, istream& is);
 
 namespace {
 
-  // FEN string of the initial position, normal chess
+  // FEN string of the initial position, normal variant
   const char* StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+#ifdef HORDE
+  // FEN string of the initial position, horde variant
+  const char* StartFENHorde = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
+#endif
 
   // Stack to keep track of the position states along the setup moves (from the
   // start position to the position just before the search starts). Needed by
@@ -54,11 +59,42 @@ namespace {
     Move m;
     string token, fen;
 
-    is >> token;
+    int variant = STANDARD_VARIANT;
+    if (Options["UCI_Chess960"])
+        variant |= CHESS960_VARIANT;
+#ifdef ATOMIC
+    if (Options["UCI_Atomic"])
+        variant |= ATOMIC_VARIANT;
+#endif
+#ifdef HORDE
+    if (Options["UCI_Horde"])
+        variant |= HORDE_VARIANT;
+#endif
+#ifdef HOUSE
+    if (Options["UCI_House"])
+        variant |= HOUSE_VARIANT;
+#endif
+#ifdef KOTH
+    if (Options["UCI_KingOfTheHill"])
+        variant |= KOTH_VARIANT;
+#endif
+#ifdef RACE
+    if (Options["UCI_Race"])
+        variant |= RACE_VARIANT;
+#endif
+#ifdef THREECHECK
+    if (Options["UCI_3Check"])
+        variant |= THREECHECK_VARIANT;
+#endif
 
+    is >> token;
     if (token == "startpos")
     {
+#ifdef HORDE
+        fen = (variant & HORDE_VARIANT) ? StartFENHorde : StartFEN;
+#else
         fen = StartFEN;
+#endif
         is >> token; // Consume "moves" token if any
     }
     else if (token == "fen")
@@ -66,8 +102,8 @@ namespace {
             fen += token + " ";
     else
         return;
-
-    pos.set(fen, Options["UCI_Chess960"], Threads.main());
+    pos.set(fen, variant, Threads.main());
+    
     SetupStates = Search::StateStackPtr(new std::stack<StateInfo>);
 
     // Parse move list (if any)
@@ -85,16 +121,15 @@ namespace {
   void setoption(istringstream& is) {
 
     string token, name, value;
-
     is >> token; // Consume "name" token
 
     // Read option name (can contain spaces)
     while (is >> token && token != "value")
-        name += string(" ", !name.empty()) + token;
+        name += string(" ", name.empty() ? 0 : 1) + token;
 
     // Read option value (can contain spaces)
     while (is >> token)
-        value += string(" ", !value.empty()) + token;
+        value += string(" ", value.empty() ? 0 : 1) + token;
 
     if (Options.count(name))
         Options[name] = value;
@@ -112,6 +147,8 @@ namespace {
     Search::LimitsType limits;
     string token;
 
+    limits.startTime = now(); // As early as possible!
+
     while (is >> token)
         if (token == "searchmoves")
             while (is >> token)
@@ -126,8 +163,8 @@ namespace {
         else if (token == "nodes")     is >> limits.nodes;
         else if (token == "movetime")  is >> limits.movetime;
         else if (token == "mate")      is >> limits.mate;
-        else if (token == "infinite")  limits.infinite = true;
-        else if (token == "ponder")    limits.ponder = true;
+        else if (token == "infinite")  limits.infinite = 1;
+        else if (token == "ponder")    limits.ponder = 1;
 
     Threads.start_thinking(pos, limits, SetupStates);
   }
@@ -143,7 +180,7 @@ namespace {
 
 void UCI::loop(int argc, char* argv[]) {
 
-  Position pos(StartFEN, false, Threads.main()); // The root position
+  Position pos(StartFEN, Threads.main()); // The root position
   string token, cmd;
 
   for (int i = 1; i < argc; ++i)
@@ -168,10 +205,10 @@ void UCI::loop(int argc, char* argv[]) {
           || (token == "ponderhit" && Search::Signals.stopOnPonderhit))
       {
           Search::Signals.stop = true;
-          Threads.main()->notify_one(); // Could be sleeping
+          Threads.main()->start_searching(true); // Could be sleeping
       }
       else if (token == "ponderhit")
-          Search::Limits.ponder = false; // Switch to normal search
+          Search::Limits.ponder = 0; // Switch to normal search
 
       else if (token == "uci")
           sync_cout << "id name " << engine_info(true)
@@ -180,7 +217,7 @@ void UCI::loop(int argc, char* argv[]) {
 
       else if (token == "ucinewgame")
       {
-          Search::reset();
+          Search::clear();
           Time.availableNodes = 0;
       }
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
@@ -209,7 +246,7 @@ void UCI::loop(int argc, char* argv[]) {
 
   } while (token != "quit" && argc == 1); // Passed args have one-shot behaviour
 
-  Threads.main()->join(); // Cannot quit whilst the search is running
+  Threads.main()->wait_for_search_finished();
 }
 
 

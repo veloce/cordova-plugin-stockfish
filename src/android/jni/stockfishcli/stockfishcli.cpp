@@ -3,20 +3,27 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+
 #include <evaluate.h>
 #include <movegen.h>
 #include <position.h>
 #include <search.h>
 #include <thread.h>
 #include <timeman.h>
-#include <tt.h>
 #include <uci.h>
+
+using namespace std;
 
 namespace stockfishcli
 {
 
   // FEN string of the initial position, normal chess
   const char* StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+#ifdef HORDE
+  // FEN string of the initial position, horde variant
+  const char* StartFENHorde = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
+#endif
 
   // Stack to keep track of the position states along the setup moves (from the
   // start position to the position just before the search starts). Needed by
@@ -29,16 +36,47 @@ namespace stockfishcli
   // or the starting position ("startpos") and then makes the moves given in the
   // following move list ("moves").
 
-  void position(Position& pos, std::istringstream& is) {
+  void position(Position& pos, istringstream& is) {
 
     Move m;
-    std::string token, fen;
+    string token, fen;
+
+    int variant = STANDARD_VARIANT;
+    if (Options["UCI_Chess960"])
+        variant |= CHESS960_VARIANT;
+#ifdef ATOMIC
+    if (Options["UCI_Atomic"])
+        variant |= ATOMIC_VARIANT;
+#endif
+#ifdef HORDE
+    if (Options["UCI_Horde"])
+        variant |= HORDE_VARIANT;
+#endif
+#ifdef HOUSE
+    if (Options["UCI_House"])
+        variant |= HOUSE_VARIANT;
+#endif
+#ifdef KOTH
+    if (Options["UCI_KingOfTheHill"])
+        variant |= KOTH_VARIANT;
+#endif
+#ifdef RACE
+    if (Options["UCI_Race"])
+        variant |= RACE_VARIANT;
+#endif
+#ifdef THREECHECK
+    if (Options["UCI_3Check"])
+        variant |= THREECHECK_VARIANT;
+#endif
 
     is >> token;
-
     if (token == "startpos")
     {
+#ifdef HORDE
+        fen = (variant & HORDE_VARIANT) ? StartFENHorde : StartFEN;
+#else
         fen = StartFEN;
+#endif
         is >> token; // Consume "moves" token if any
     }
     else if (token == "fen")
@@ -46,8 +84,8 @@ namespace stockfishcli
             fen += token + " ";
     else
         return;
+    pos.set(fen, variant, Threads.main());
 
-    pos.set(fen, Options["UCI_Chess960"], Threads.main());
     SetupStates = Search::StateStackPtr(new std::stack<StateInfo>);
 
     // Parse move list (if any)
@@ -62,19 +100,18 @@ namespace stockfishcli
   // setoption() is called when engine receives the "setoption" UCI command. The
   // function updates the UCI option ("name") to the given value ("value").
 
-  void setoption(std::istringstream& is) {
+  void setoption(istringstream& is) {
 
-    std::string token, name, value;
-
+    string token, name, value;
     is >> token; // Consume "name" token
 
     // Read option name (can contain spaces)
     while (is >> token && token != "value")
-        name += std::string(" ", !name.empty()) + token;
+        name += string(" ", name.empty() ? 0 : 1) + token;
 
     // Read option value (can contain spaces)
     while (is >> token)
-        value += std::string(" ", !value.empty()) + token;
+        value += string(" ", value.empty() ? 0 : 1) + token;
 
     if (Options.count(name))
         Options[name] = value;
@@ -87,10 +124,12 @@ namespace stockfishcli
   // the thinking time and other parameters from the input string, then starts
   // the search.
 
-  void go(const Position& pos, std::istringstream& is) {
+  void go(const Position& pos, istringstream& is) {
 
     Search::LimitsType limits;
-    std::string token;
+    string token;
+
+    limits.startTime = now(); // As early as possible!
 
     while (is >> token)
         if (token == "searchmoves")
@@ -106,12 +145,11 @@ namespace stockfishcli
         else if (token == "nodes")     is >> limits.nodes;
         else if (token == "movetime")  is >> limits.movetime;
         else if (token == "mate")      is >> limits.mate;
-        else if (token == "infinite")  limits.infinite = true;
-        else if (token == "ponder")    limits.ponder = true;
+        else if (token == "infinite")  limits.infinite = 1;
+        else if (token == "ponder")    limits.ponder = 1;
 
     Threads.start_thinking(pos, limits, SetupStates);
   }
-
 
   Position pos;
 
@@ -132,40 +170,31 @@ namespace stockfishcli
             || (token == "ponderhit" && Search::Signals.stopOnPonderhit))
       {
         Search::Signals.stop = true;
-        Threads.main()->notify_one(); // Could be sleeping
+        Threads.main()->start_searching(true); // Could be sleeping
       }
     else if (token == "ponderhit")
-      Search::Limits.ponder = false; // Switch to normal search
+      Search::Limits.ponder = 0; // Switch to normal search
 
     else if (token == "uci")
       sync_cout << "id name " << engine_info(true)
                 << "\n"       << Options
                 << "\nuciok"  << sync_endl;
 
+    else if (token == "ucinewgame")
+      {
+        Search::clear();
+        Time.availableNodes = 0;
+      }
     else if (token == "isready")    sync_cout << "readyok" << sync_endl;
-    else if (token == "ucinewgame") TT.clear();
-    else if (token == "go")         stockfishcli::go(pos, is);
-    else if (token == "position")   stockfishcli::position(pos, is);
-    else if (token == "setoption")  stockfishcli::setoption(is);
+    else if (token == "go")         go(pos, is);
+    else if (token == "position")   position(pos, is);
+    else if (token == "setoption")  setoption(is);
 
     // Additional custom non-UCI commands, useful for debugging
     else if (token == "flip")       pos.flip();
     else if (token == "d")          sync_cout << pos << sync_endl;
     else if (token == "eval")       sync_cout << Eval::trace(pos) << sync_endl;
-    else if (token == "perft")
-      {
-        int depth;
-        std::stringstream ss;
-
-        is >> depth;
-        ss << Options["Hash"]    << " "
-           << Options["Threads"] << " " << depth << " current perft";
-      }
     else
       sync_cout << "Unknown command: " << cmd << sync_endl;
-
-    ///} while (token != "quit" && argc == 1); // Passed args have one-shot behaviour /// Can't have an infinite loop in JS.
-
-    ///Threads.wait_for_think_finished(); // Cannot quit whilst the search is running /// Don't need this either.
   }
 }

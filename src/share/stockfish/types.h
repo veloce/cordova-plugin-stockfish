@@ -2,6 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -61,7 +62,6 @@
 #if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
 #  include <intrin.h> // MSVC popcnt and bsfq instrinsics
 #  define IS_64BIT
-#  define USE_BSFQ
 #endif
 
 #if defined(USE_POPCNT) && defined(__INTEL_COMPILER) && defined(_MSC_VER)
@@ -151,6 +151,12 @@ template<Color C, CastlingSide S> struct MakeCastling {
                      : S == QUEEN_SIDE ? BLACK_OOO : BLACK_OO;
 };
 
+#ifdef THREECHECK
+enum Checks {
+  CHECKS_0 = 0, CHECKS_1 = 1, CHECKS_2 = 2, CHECKS_3 = 3, CHECKS_NB = 4
+};
+#endif
+
 enum Phase {
   PHASE_ENDGAME,
   PHASE_MIDGAME = 128,
@@ -184,10 +190,10 @@ enum Value : int {
   VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + 2 * MAX_PLY,
 
   PawnValueMg   = 198,   PawnValueEg   = 258,
-  KnightValueMg = 817,   KnightValueEg = 846,
-  BishopValueMg = 836,   BishopValueEg = 857,
-  RookValueMg   = 1270,  RookValueEg   = 1281,
-  QueenValueMg  = 2521,  QueenValueEg  = 2558,
+  KnightValueMg = 817,   KnightValueEg = 896,
+  BishopValueMg = 836,   BishopValueEg = 907,
+  RookValueMg   = 1270,  RookValueEg   = 1356,
+  QueenValueMg  = 2521,  QueenValueEg  = 2658,
 
   MidgameLimit  = 15581, EndgameLimit  = 3998
 };
@@ -299,6 +305,9 @@ ENABLE_FULL_OPERATORS_ON(Value)
 ENABLE_FULL_OPERATORS_ON(PieceType)
 ENABLE_FULL_OPERATORS_ON(Piece)
 ENABLE_FULL_OPERATORS_ON(Color)
+#ifdef THREECHECK
+ENABLE_FULL_OPERATORS_ON(Checks)
+#endif
 ENABLE_FULL_OPERATORS_ON(Depth)
 ENABLE_FULL_OPERATORS_ON(Square)
 ENABLE_FULL_OPERATORS_ON(File)
@@ -354,7 +363,7 @@ inline Piece make_piece(Color c, PieceType pt) {
   return Piece((c << 3) | pt);
 }
 
-inline PieceType type_of(Piece pc)  {
+inline PieceType type_of(Piece pc) {
   return PieceType(pc & 7);
 }
 

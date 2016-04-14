@@ -2,12 +2,12 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
-
 
   Stockfish is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -60,16 +60,6 @@ const Bitboard Rank7BB = Rank1BB << (8 * 6);
 const Bitboard Rank8BB = Rank1BB << (8 * 7);
 
 extern int SquareDistance[SQUARE_NB][SQUARE_NB];
-
-extern Bitboard  RookMasks  [SQUARE_NB];
-extern Bitboard  RookMagics [SQUARE_NB];
-extern Bitboard* RookAttacks[SQUARE_NB];
-extern unsigned  RookShifts [SQUARE_NB];
-
-extern Bitboard  BishopMasks  [SQUARE_NB];
-extern Bitboard  BishopMagics [SQUARE_NB];
-extern Bitboard* BishopAttacks[SQUARE_NB];
-extern unsigned  BishopShifts [SQUARE_NB];
 
 extern Bitboard SquareBB[SQUARE_NB];
 extern Bitboard FileBB[FILE_NB];
@@ -225,6 +215,13 @@ template<> inline int distance<Rank>(Square x, Square y) { return distance(rank_
 template<PieceType Pt>
 inline unsigned magic_index(Square s, Bitboard occupied) {
 
+  extern Bitboard RookMasks[SQUARE_NB];
+  extern Bitboard RookMagics[SQUARE_NB];
+  extern unsigned RookShifts[SQUARE_NB];
+  extern Bitboard BishopMasks[SQUARE_NB];
+  extern Bitboard BishopMagics[SQUARE_NB];
+  extern unsigned BishopShifts[SQUARE_NB];
+
   Bitboard* const Masks  = Pt == ROOK ? RookMasks  : BishopMasks;
   Bitboard* const Magics = Pt == ROOK ? RookMagics : BishopMagics;
   unsigned* const Shifts = Pt == ROOK ? RookShifts : BishopShifts;
@@ -242,6 +239,10 @@ inline unsigned magic_index(Square s, Bitboard occupied) {
 
 template<PieceType Pt>
 inline Bitboard attacks_bb(Square s, Bitboard occupied) {
+
+  extern Bitboard* RookAttacks[SQUARE_NB];
+  extern Bitboard* BishopAttacks[SQUARE_NB];
+
   return (Pt == ROOK ? RookAttacks : BishopAttacks)[s][magic_index<Pt>(s, occupied)];
 }
 
@@ -257,56 +258,65 @@ inline Bitboard attacks_bb(Piece pc, Square s, Bitboard occupied) {
 }
 
 
+/// popcount() counts the number of non-zero bits in a bitboard
+
+inline int popcount(Bitboard b) {
+
+#ifndef USE_POPCNT
+
+  extern uint8_t PopCnt16[1 << 16];
+  union { Bitboard bb; uint16_t u[4]; } v = { b };
+  return PopCnt16[v.u[0]] + PopCnt16[v.u[1]] + PopCnt16[v.u[2]] + PopCnt16[v.u[3]];
+
+#elif defined(_MSC_VER) && defined(__INTEL_COMPILER)
+
+  return _mm_popcnt_u64(b);
+
+#elif defined(_MSC_VER)
+
+  return (int)__popcnt64(b);
+
+#else // Assumed gcc or compatible compiler
+
+  return __builtin_popcountll(b);
+
+#endif
+}
+
+
 /// lsb() and msb() return the least/most significant bit in a non-zero bitboard
 
-#ifdef USE_BSFQ
-
-#  if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#if defined(__GNUC__)
 
 inline Square lsb(Bitboard b) {
+  assert(b);
+  return Square(__builtin_ctzll(b));
+}
+
+inline Square msb(Bitboard b) {
+  assert(b);
+  return Square(63 - __builtin_clzll(b));
+}
+
+#elif defined(_WIN64) && defined(_MSC_VER)
+
+inline Square lsb(Bitboard b) {
+  assert(b);
   unsigned long idx;
   _BitScanForward64(&idx, b);
   return (Square) idx;
 }
 
 inline Square msb(Bitboard b) {
+  assert(b);
   unsigned long idx;
   _BitScanReverse64(&idx, b);
   return (Square) idx;
 }
 
-#  elif defined(__arm__)
+#else
 
-inline int lsb32(uint32_t v) {
-  __asm__("rbit %0, %1" : "=r"(v) : "r"(v));
-  return __builtin_clz(v);
-}
-
-inline Square msb(Bitboard b) {
-  return (Square) (63 - __builtin_clzll(b));
-}
-
-inline Square lsb(Bitboard b) {
-  return (Square) (uint32_t(b) ? lsb32(uint32_t(b)) : 32 + lsb32(uint32_t(b >> 32)));
-}
-
-#  else // Assumed gcc or compatible compiler
-
-inline Square lsb(Bitboard b) { // Assembly code by Heinz van Saanen
-  Bitboard idx;
-  __asm__("bsfq %1, %0": "=r"(idx): "rm"(b) );
-  return (Square) idx;
-}
-
-inline Square msb(Bitboard b) {
-  Bitboard idx;
-  __asm__("bsrq %1, %0": "=r"(idx): "rm"(b) );
-  return (Square) idx;
-}
-
-#  endif
-
-#else // ifdef(USE_BSFQ)
+#define NO_BSF // Fallback on software implementation for other cases
 
 Square lsb(Bitboard b);
 Square msb(Bitboard b);

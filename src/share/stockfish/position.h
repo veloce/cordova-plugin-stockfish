@@ -2,6 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,8 +28,17 @@
 #include "bitboard.h"
 #include "types.h"
 
+#define STANDARD_VARIANT 0
+#define CHESS960_VARIANT 1 << 1
+#define ATOMIC_VARIANT 1 << 2
+#define HORDE_VARIANT 1 << 3
+#define HOUSE_VARIANT 1 << 4
+#define KOTH_VARIANT 1 << 5
+#define RACE_VARIANT 1 << 6
+#define THREECHECK_VARIANT 1 << 7
+
 class Position;
-struct Thread;
+class Thread;
 
 namespace PSQT {
 
@@ -37,8 +47,8 @@ namespace PSQT {
   void init();
 }
 
-/// CheckInfo struct is initialized at c'tor time and keeps info used to detect
-/// if a move gives check.
+/// CheckInfo struct is initialized at constructor time and keeps info used to
+/// detect if a move gives check.
 
 struct CheckInfo {
 
@@ -64,6 +74,9 @@ struct StateInfo {
   int    castlingRights;
   int    rule50;
   int    pliesFromNull;
+#ifdef THREECHECK
+  Checks checksGiven[COLOR_NB];
+#endif
   Score  psq;
   Square epSquare;
 
@@ -71,6 +84,9 @@ struct StateInfo {
   Key        key;
   Bitboard   checkersBB;
   PieceType  capturedType;
+#ifdef ATOMIC
+  Piece      blast[SQUARE_NB];
+#endif
   StateInfo* previous;
 };
 
@@ -82,19 +98,21 @@ struct StateInfo {
 
 class Position {
 
-  friend std::ostream& operator<<(std::ostream&, const Position&);
-
 public:
   static void init();
 
   Position() = default; // To define the global object RootPos
   Position(const Position&) = delete;
   Position(const Position& pos, Thread* th) { *this = pos; thisThread = th; }
-  Position(const std::string& f, bool c960, Thread* th) { set(f, c960, th); }
+
+  Position(const std::string& f, Thread* t) { set(f, STANDARD_VARIANT, t); }
+  Position(const std::string& f, int var, Thread* t) { set(f, var, t); }
+
   Position& operator=(const Position&); // To assign RootPos from UCI
 
   // FEN string input/output
-  void set(const std::string& fenStr, bool isChess960, Thread* th);
+  void set(const std::string& fenStr, int var, Thread* th);
+
   const std::string fen() const;
 
   // Position representation
@@ -165,6 +183,38 @@ public:
   Phase game_phase() const;
   int game_ply() const;
   bool is_chess960() const;
+#ifdef ATOMIC
+  bool is_atomic() const;
+  bool is_atomic_win() const;
+  bool is_atomic_loss() const;
+#endif
+#ifdef HORDE
+  bool is_horde() const;
+  bool is_horde_loss() const;
+#endif
+#ifdef HOUSE
+  bool is_house() const;
+#endif
+#ifdef KOTH
+  bool is_koth() const;
+  bool is_koth_win() const;
+  bool is_koth_loss() const;
+  int koth_distance(Color c) const;
+#endif
+#ifdef RACE
+  bool is_race() const;
+  bool is_race_win() const;
+  bool is_race_draw() const;
+  bool is_race_loss() const;
+#endif
+#ifdef THREECHECK
+  bool is_three_check() const;
+  bool is_three_check_win() const;
+  bool is_three_check_loss() const;
+  int checks_count() const;
+  Checks checks_given() const;
+  Checks checks_taken() const;
+#endif
   Thread* this_thread() const;
   uint64_t nodes_searched() const;
   void set_nodes_searched(uint64_t n);
@@ -196,7 +246,11 @@ private:
   Bitboard byTypeBB[PIECE_TYPE_NB];
   Bitboard byColorBB[COLOR_NB];
   int pieceCount[COLOR_NB][PIECE_TYPE_NB];
+#ifdef HORDE
+  Square pieceList[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+#else
   Square pieceList[COLOR_NB][PIECE_TYPE_NB][16];
+#endif
   int index[SQUARE_NB];
   int castlingRightsMask[SQUARE_NB];
   Square castlingRookSquare[CASTLING_RIGHT_NB];
@@ -207,8 +261,11 @@ private:
   Color sideToMove;
   Thread* thisThread;
   StateInfo* st;
-  bool chess960;
+  int variant;
+
 };
+
+extern std::ostream& operator<<(std::ostream& os, const Position& pos);
 
 inline Color Position::side_to_move() const {
   return sideToMove;
@@ -259,9 +316,46 @@ template<PieceType Pt> inline const Square* Position::squares(Color c) const {
 }
 
 template<PieceType Pt> inline Square Position::square(Color c) const {
+#ifdef HORDE
+  if (is_horde() && c == WHITE)
+  {
+      assert(pieceCount[c][Pt] == 0);
+      return SQ_NONE;
+  }
+#endif
+#ifdef ATOMIC
+  if (is_atomic() && pieceCount[c][Pt] == 0)
+      return SQ_NONE;
+#endif
   assert(pieceCount[c][Pt] == 1);
   return pieceList[c][Pt][0];
 }
+
+#ifdef THREECHECK
+inline bool Position::is_three_check() const {
+  return variant & THREECHECK_VARIANT;
+}
+
+inline bool Position::is_three_check_win() const {
+  return st->checksGiven[sideToMove] == CHECKS_3;
+}
+
+inline bool Position::is_three_check_loss() const {
+  return st->checksGiven[~sideToMove] == CHECKS_3;
+}
+
+inline int Position::checks_count() const {
+  return st->checksGiven[WHITE] + st->checksGiven[BLACK];
+}
+
+inline Checks Position::checks_given() const {
+  return st->checksGiven[sideToMove];
+}
+
+inline Checks Position::checks_taken() const {
+  return st->checksGiven[~sideToMove];
+}
+#endif
 
 inline Square Position::ep_square() const {
   return st->epSquare;
@@ -316,10 +410,23 @@ inline Bitboard Position::pinned_pieces(Color c) const {
 }
 
 inline bool Position::pawn_passed(Color c, Square s) const {
+#ifdef RACE
+  if (is_race())
+    return true;
+#endif
+#ifdef HORDE
+  if (is_horde() && c == WHITE)
+      return !(pieces(~c, PAWN) & forward_bb(c, s));
+#endif
   return !(pieces(~c, PAWN) & passed_pawn_mask(c, s));
 }
 
 inline bool Position::advanced_pawn_push(Move m) const {
+#ifdef RACE
+  if (is_race())
+    return   type_of(moved_piece(m)) == KING
+          && rank_of(from_sq(m)) > RANK_4;
+#endif
   return   type_of(moved_piece(m)) == PAWN
         && relative_rank(sideToMove, from_sq(m)) > RANK_4;
 }
@@ -366,13 +473,101 @@ inline bool Position::opposite_bishops() const {
         && opposite_colors(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
+#ifdef ATOMIC
+inline bool Position::is_atomic() const {
+  return variant & ATOMIC_VARIANT;
+}
+
+// Loss if king is captured (Atomic)
+inline bool Position::is_atomic_win() const {
+  return count<KING>(~sideToMove) == 0;
+}
+
+// Loss if king is captured (Atomic)
+inline bool Position::is_atomic_loss() const {
+  return count<KING>(sideToMove) == 0;
+}
+#endif
+
+#ifdef HORDE
+inline bool Position::is_horde() const {
+  return variant & HORDE_VARIANT;
+}
+
+// Loss if horde is captured (Horde)
+inline bool Position::is_horde_loss() const {
+  return count<ALL_PIECES>(WHITE) == 0;
+}
+#endif
+
+#ifdef HOUSE
+inline bool Position::is_house() const {
+  return variant & HOUSE_VARIANT;
+}
+#endif
+
+#ifdef KOTH
+inline bool Position::is_koth() const {
+  return variant & KOTH_VARIANT;
+}
+
+// Win if king is in the center (KOTH)
+inline bool Position::is_koth_win() const {
+  Square ksq = square<KING>(sideToMove);
+  return (rank_of(ksq) == RANK_4 || rank_of(ksq) == RANK_5) &&
+         (file_of(ksq) == FILE_D || file_of(ksq) == FILE_E);
+}
+
+// Loss if king is in the center (KOTH)
+inline bool Position::is_koth_loss() const {
+  Square ksq = square<KING>(~sideToMove);
+  return (rank_of(ksq) == RANK_4 || rank_of(ksq) == RANK_5) &&
+         (file_of(ksq) == FILE_D || file_of(ksq) == FILE_E);
+}
+
+inline int Position::koth_distance(Color c) const {
+  Square ksq = square<KING>(c);
+  return (distance(ksq, SQ_D4) + distance(ksq, SQ_E4) +
+          distance(ksq, SQ_D5) + distance(ksq, SQ_E5)) / 4;
+}
+#endif
+
+#ifdef RACE
+inline bool Position::is_race() const {
+  return variant & RACE_VARIANT;
+}
+
+// Win if king is on the eighth rank (Racing Kings)
+inline bool Position::is_race_win() const {
+  return rank_of(square<KING>(sideToMove)) == RANK_8;
+}
+
+// Draw if kings are on the eighth rank (Racing Kings)
+inline bool Position::is_race_draw() const {
+  return is_race_win() && is_race_loss();
+}
+
+// Loss if king is on the eighth rank (Racing Kings)
+inline bool Position::is_race_loss() const {
+  return (sideToMove == WHITE || rank_of(square<KING>(sideToMove)) < RANK_7) &&
+         rank_of(square<KING>(~sideToMove)) == RANK_8;
+}
+#endif
+
 inline bool Position::is_chess960() const {
-  return chess960;
+  return variant & CHESS960_VARIANT;
 }
 
 inline bool Position::capture_or_promotion(Move m) const {
 
   assert(is_ok(m));
+#ifdef RACE
+  if (is_race())
+  {
+    Square from = from_sq(m), to = to_sq(m);
+    return (type_of(board[from]) == KING && rank_of(to) >= rank_of(from)) || !empty(to);
+  }
+#endif
   return type_of(m) != NORMAL ? type_of(m) != CASTLING : !empty(to_sq(m));
 }
 
@@ -411,6 +606,10 @@ inline void Position::remove_piece(Color c, PieceType pt, Square s) {
   byTypeBB[ALL_PIECES] ^= s;
   byTypeBB[pt] ^= s;
   byColorBB[c] ^= s;
+#ifdef ATOMIC
+  if (is_atomic())
+      board[s] = NO_PIECE;
+#endif
   /* board[s] = NO_PIECE;  Not needed, overwritten by the capturing one */
   Square lastSquare = pieceList[c][pt][--pieceCount[c][pt]];
   index[lastSquare] = index[s];
