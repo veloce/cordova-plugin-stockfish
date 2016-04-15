@@ -25,13 +25,7 @@ module.exports = {
   },
 
   output: function (success, error) {
-    if (success) {
-      cordova.exec(success, error, 'CordovaPluginStockfish', 'output', []);
-    } else {
-      return new Promise(function(resolve, reject) {
-        cordova.exec(resolve, reject, 'CordovaPluginStockfish', 'output', []);
-      });
-    }
+    cordova.exec(success, error, 'CordovaPluginStockfish', 'output', []);
   },
 
   exit: function (success, error) {
