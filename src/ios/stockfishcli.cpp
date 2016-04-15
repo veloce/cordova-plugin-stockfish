@@ -1,4 +1,4 @@
-#include <stockfishcli.h>
+#include "stockfishcli.h"
 
 #include <iostream>
 #include <sstream>
