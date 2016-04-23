@@ -28,7 +28,7 @@ auto readstdout = []() {
   // Save standard output
   std::streambuf* out = std::cout.rdbuf();
 
-  threadbuf lichbuf(8, 512);
+  threadbuf lichbuf(8, 1024);
   std::ostream lichout(&lichbuf);
   std::cout.rdbuf(lichout.rdbuf());
   std::istream lichin(&lichbuf);
