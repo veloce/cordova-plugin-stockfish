@@ -186,48 +186,11 @@ void Position::init() {
 }
 
 
-/// Position::operator=() creates a copy of 'pos' but detaching the state pointer
-/// from the source to be self-consistent and not depending on any external data.
-
-Position& Position::operator=(const Position& pos) {
-
-  std::memcpy(this, &pos, sizeof(Position));
-  std::memcpy(&startState, st, sizeof(StateInfo));
-  st = &startState;
-  nodes = 0;
-
-  assert(pos_is_ok());
-
-  return *this;
-}
-
-
-/// Position::clear() erases the position object to a pristine state, with an
-/// empty board, white to move, and no castling rights.
-
-void Position::clear() {
-
-  std::memset(this, 0, sizeof(Position));
-  startState.epSquare = SQ_NONE;
-  st = &startState;
-
-#ifdef HORDE
-  for (int i = 0; i < PIECE_TYPE_NB; ++i)
-      for (int j = 0; j < SQUARE_NB; ++j)
-          pieceList[WHITE][i][j] = pieceList[BLACK][i][j] = SQ_NONE;
-#else
-  for (int i = 0; i < PIECE_TYPE_NB; ++i)
-      for (int j = 0; j < 16; ++j)
-          pieceList[WHITE][i][j] = pieceList[BLACK][i][j] = SQ_NONE;
-#endif
-}
-
-
 /// Position::set() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
 
-void Position::set(const string& fenStr, int var, Thread* th) {
+Position& Position::set(const string& fenStr, int v, StateInfo* si, Thread* th) {
 /*
    A FEN string defines a particular position using only the ASCII character set.
 
@@ -267,7 +230,11 @@ void Position::set(const string& fenStr, int var, Thread* th) {
   Square sq = SQ_A8;
   std::istringstream ss(fenStr);
 
-  clear();
+  std::memset(this, 0, sizeof(Position));
+  std::memset(si, 0, sizeof(StateInfo));
+  std::fill_n(&pieceList[0][0][0], sizeof(pieceList) / sizeof(Square), SQ_NONE);
+  st = si;
+
   ss >> std::noskipws;
 
   // 1. Piece placement
@@ -343,6 +310,8 @@ void Position::set(const string& fenStr, int var, Thread* th) {
       else if (sideToMove == BLACK && !(shift_bb<DELTA_N>(SquareBB[st->epSquare]) & pieces(WHITE, PAWN)))
           st->epSquare = SQ_NONE;
   }
+  else
+      st->epSquare = SQ_NONE;
 
   // 5-6. Halfmove clock and fullmove number
   ss >> std::skipws >> st->rule50 >> gamePly;
@@ -350,7 +319,7 @@ void Position::set(const string& fenStr, int var, Thread* th) {
 #ifdef THREECHECK
     st->checksGiven[WHITE] = CHECKS_0;
     st->checksGiven[BLACK] = CHECKS_0;
-    if ((var & THREECHECK_VARIANT) != 0)
+    if ((v & THREECHECK_VARIANT) != 0)
     {
         // 7. Checks given counter for Three-Check positions
         if ((ss >> std::skipws >> token) && token == '+')
@@ -364,14 +333,16 @@ void Position::set(const string& fenStr, int var, Thread* th) {
             case 3: st->checksGiven[WHITE] = CHECKS_3; break;
             default: st->checksGiven[WHITE] = CHECKS_NB;
             }
-            ss >> token; // skip '+'
-            switch(token - '0')
-            {
-            case 0: st->checksGiven[BLACK] = CHECKS_0; break;
-            case 1: st->checksGiven[BLACK] = CHECKS_1; break;
-            case 2: st->checksGiven[BLACK] = CHECKS_2; break;
-            case 3: st->checksGiven[BLACK] = CHECKS_3; break;
-            default : st->checksGiven[BLACK] = CHECKS_NB;
+            if ((ss >> token) && token == '+') {
+                ss >> token;
+                switch(token - '0')
+                {
+                case 0: st->checksGiven[BLACK] = CHECKS_0; break;
+                case 1: st->checksGiven[BLACK] = CHECKS_1; break;
+                case 2: st->checksGiven[BLACK] = CHECKS_2; break;
+                case 3: st->checksGiven[BLACK] = CHECKS_3; break;
+                default : st->checksGiven[BLACK] = CHECKS_NB;
+                }
             }
         }
     }
@@ -381,11 +352,13 @@ void Position::set(const string& fenStr, int var, Thread* th) {
   // handle also common incorrect FEN with fullmove = 0.
   gamePly = std::max(2 * (gamePly - 1), 0) + (sideToMove == BLACK);
 
-  variant = var;
+  var = v;
   thisThread = th;
   set_state(st);
 
   assert(pos_is_ok());
+
+  return *this;
 }
 
 
@@ -423,7 +396,7 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 void Position::set_state(StateInfo* si) const {
 
-  si->key = si->pawnKey = si->materialKey = variant;
+  si->key = si->pawnKey = si->materialKey = var;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
 
@@ -714,8 +687,7 @@ bool Position::legal(Move m, Bitboard pinned) const {
 
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
-  return   !pinned
-        || !(pinned & from)
+  return   !(pinned & from)
         ||  aligned(from, to_sq(m), square<KING>(us));
 }
 
@@ -903,8 +875,7 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
       return true;
 
   // Is there a discovered check?
-  if (    ci.dcCandidates
-      && (ci.dcCandidates & from)
+  if (   (ci.dcCandidates & from)
       && !aligned(from, to, ci.ksq))
       return true;
 
@@ -1537,7 +1508,7 @@ void Position::flip() {
   std::getline(ss, token); // Half and full moves
   f += token;
 
-  set(f, variant, this_thread());
+  set(f, var, st, this_thread());
 
   assert(pos_is_ok());
 }

@@ -23,7 +23,10 @@
 
 #include <cassert>
 #include <cstddef>  // For offsetof()
+#include <deque>
+#include <memory>   // For std::unique_ptr
 #include <string>
+#include <vector>
 
 #include "bitboard.h"
 #include "types.h"
@@ -90,6 +93,9 @@ struct StateInfo {
   StateInfo* previous;
 };
 
+// In a std::deque references to elements are unaffected upon resizing
+typedef std::unique_ptr<std::deque<StateInfo>> StateListPtr;
+
 
 /// Position class stores information regarding the board representation as
 /// pieces, side to move, hash keys, castling info, etc. Important methods are
@@ -101,18 +107,12 @@ class Position {
 public:
   static void init();
 
-  Position() = default; // To define the global object RootPos
+  Position() = default;
   Position(const Position&) = delete;
-  Position(const Position& pos, Thread* th) { *this = pos; thisThread = th; }
-
-  Position(const std::string& f, Thread* t) { set(f, STANDARD_VARIANT, t); }
-  Position(const std::string& f, int var, Thread* t) { set(f, var, t); }
-
-  Position& operator=(const Position&); // To assign RootPos from UCI
+  Position& operator=(const Position&) = delete;
 
   // FEN string input/output
-  void set(const std::string& fenStr, int var, Thread* th);
-
+  Position& set(const std::string& fenStr, int v, StateInfo* si, Thread* th);
   const std::string fen() const;
 
   // Position representation
@@ -182,6 +182,7 @@ public:
   Color side_to_move() const;
   Phase game_phase() const;
   int game_ply() const;
+  int variant() const;
   bool is_chess960() const;
 #ifdef ATOMIC
   bool is_atomic() const;
@@ -229,7 +230,6 @@ public:
 
 private:
   // Initialization helpers (used while setting up a position)
-  void clear();
   void set_castling_right(Color c, Square rfrom);
   void set_state(StateInfo* si) const;
 
@@ -255,13 +255,12 @@ private:
   int castlingRightsMask[SQUARE_NB];
   Square castlingRookSquare[CASTLING_RIGHT_NB];
   Bitboard castlingPath[CASTLING_RIGHT_NB];
-  StateInfo startState;
   uint64_t nodes;
   int gamePly;
   Color sideToMove;
   Thread* thisThread;
   StateInfo* st;
-  int variant;
+  int var;
 
 };
 
@@ -333,7 +332,7 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
 
 #ifdef THREECHECK
 inline bool Position::is_three_check() const {
-  return variant & THREECHECK_VARIANT;
+  return var & THREECHECK_VARIANT;
 }
 
 inline bool Position::is_three_check_win() const {
@@ -475,7 +474,7 @@ inline bool Position::opposite_bishops() const {
 
 #ifdef ATOMIC
 inline bool Position::is_atomic() const {
-  return variant & ATOMIC_VARIANT;
+  return var & ATOMIC_VARIANT;
 }
 
 // Loss if king is captured (Atomic)
@@ -491,7 +490,7 @@ inline bool Position::is_atomic_loss() const {
 
 #ifdef HORDE
 inline bool Position::is_horde() const {
-  return variant & HORDE_VARIANT;
+  return var & HORDE_VARIANT;
 }
 
 // Loss if horde is captured (Horde)
@@ -502,13 +501,13 @@ inline bool Position::is_horde_loss() const {
 
 #ifdef HOUSE
 inline bool Position::is_house() const {
-  return variant & HOUSE_VARIANT;
+  return var & HOUSE_VARIANT;
 }
 #endif
 
 #ifdef KOTH
 inline bool Position::is_koth() const {
-  return variant & KOTH_VARIANT;
+  return var & KOTH_VARIANT;
 }
 
 // Win if king is in the center (KOTH)
@@ -534,7 +533,7 @@ inline int Position::koth_distance(Color c) const {
 
 #ifdef RACE
 inline bool Position::is_race() const {
-  return variant & RACE_VARIANT;
+  return var & RACE_VARIANT;
 }
 
 // Win if king is on the eighth rank (Racing Kings)
@@ -554,8 +553,12 @@ inline bool Position::is_race_loss() const {
 }
 #endif
 
+inline int Position::variant() const {
+  return var;
+}
+
 inline bool Position::is_chess960() const {
-  return variant & CHESS960_VARIANT;
+  return var & CHESS960_VARIANT;
 }
 
 inline bool Position::capture_or_promotion(Move m) const {

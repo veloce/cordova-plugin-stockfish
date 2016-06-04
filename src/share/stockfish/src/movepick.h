@@ -79,10 +79,9 @@ public:
   MovePicker(const MovePicker&) = delete;
   MovePicker& operator=(const MovePicker&) = delete;
 
-  MovePicker(const Position&, Move, const HistoryStats&, Value);
-  MovePicker(const Position&, Move, Depth, const HistoryStats&, Square);
-  MovePicker(const Position&, Move, Depth, const HistoryStats&,
-             const CounterMoveStats&, const CounterMoveStats&, Move, Search::Stack*);
+  MovePicker(const Position&, Move, Value);
+  MovePicker(const Position&, Move, Depth, Square);
+  MovePicker(const Position&, Move, Depth, Search::Stack*);
 
   Move next_move();
 
@@ -93,10 +92,7 @@ private:
   ExtMove* end() { return endMoves; }
 
   const Position& pos;
-  const HistoryStats& history;
-  const CounterMoveStats* counterMoveHistory;
-  const CounterMoveStats* followupMoveHistory;
-  Search::Stack* ss;
+  const Search::Stack* ss;
   Move countermove;
   Depth depth;
   Move ttMove;
@@ -104,7 +100,7 @@ private:
   Square recaptureSquare;
   Value threshold;
   int stage;
-  ExtMove *endQuiets, *endBadCaptures = moves + MAX_MOVES - 1;
+  ExtMove* endBadCaptures = moves + MAX_MOVES - 1;
   ExtMove moves[MAX_MOVES], *cur = moves, *endMoves = moves;
 };
 
