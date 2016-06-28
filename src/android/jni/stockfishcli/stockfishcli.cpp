@@ -14,21 +14,21 @@
 
 using namespace std;
 
+extern void benchmark(const Position& pos, istream& is);
+
 namespace stockfishcli
 {
-
-  // FEN string of the initial position, normal chess
+  // FEN string of the initial position, normal variant
   const char* StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
 #ifdef HORDE
   // FEN string of the initial position, horde variant
   const char* StartFENHorde = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
 #endif
 
-  // Stack to keep track of the position states along the setup moves (from the
+  // A list to keep track of the position states along the setup moves (from the
   // start position to the position just before the search starts). Needed by
   // 'draw by repetition' detection.
-  Search::StateStackPtr SetupStates;
+  StateListPtr States(new std::deque<StateInfo>(1));
 
 
   // position() is called when engine receives the "position" UCI command.
@@ -43,56 +43,56 @@ namespace stockfishcli
 
     int variant = STANDARD_VARIANT;
     if (Options["UCI_Chess960"])
-        variant |= CHESS960_VARIANT;
+      variant |= CHESS960_VARIANT;
 #ifdef ATOMIC
     if (Options["UCI_Atomic"])
-        variant |= ATOMIC_VARIANT;
+      variant |= ATOMIC_VARIANT;
 #endif
 #ifdef HORDE
     if (Options["UCI_Horde"])
-        variant |= HORDE_VARIANT;
+      variant |= HORDE_VARIANT;
 #endif
 #ifdef HOUSE
     if (Options["UCI_House"])
-        variant |= HOUSE_VARIANT;
+      variant |= HOUSE_VARIANT;
 #endif
 #ifdef KOTH
     if (Options["UCI_KingOfTheHill"])
-        variant |= KOTH_VARIANT;
+      variant |= KOTH_VARIANT;
 #endif
 #ifdef RACE
     if (Options["UCI_Race"])
-        variant |= RACE_VARIANT;
+      variant |= RACE_VARIANT;
 #endif
 #ifdef THREECHECK
     if (Options["UCI_3Check"])
-        variant |= THREECHECK_VARIANT;
+      variant |= THREECHECK_VARIANT;
 #endif
 
     is >> token;
     if (token == "startpos")
     {
 #ifdef HORDE
-        fen = (variant & HORDE_VARIANT) ? StartFENHorde : StartFEN;
+      fen = (variant & HORDE_VARIANT) ? StartFENHorde : StartFEN;
 #else
-        fen = StartFEN;
+      fen = StartFEN;
 #endif
-        is >> token; // Consume "moves" token if any
+      is >> token; // Consume "moves" token if any
     }
     else if (token == "fen")
-        while (is >> token && token != "moves")
-            fen += token + " ";
+      while (is >> token && token != "moves")
+        fen += token + " ";
     else
-        return;
-    pos.set(fen, variant, Threads.main());
+      return;
 
-    SetupStates = Search::StateStackPtr(new std::stack<StateInfo>);
+    States = StateListPtr(new std::deque<StateInfo>(1));
+    pos.set(fen, variant, &States->back(), Threads.main());
 
     // Parse move list (if any)
     while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
     {
-        SetupStates->push(StateInfo());
-        pos.do_move(m, SetupStates->top(), pos.gives_check(m, CheckInfo(pos)));
+      States->push_back(StateInfo());
+      pos.do_move(m, States->back(), pos.gives_check(m, CheckInfo(pos)));
     }
   }
 
@@ -107,16 +107,16 @@ namespace stockfishcli
 
     // Read option name (can contain spaces)
     while (is >> token && token != "value")
-        name += string(" ", name.empty() ? 0 : 1) + token;
+      name += string(" ", name.empty() ? 0 : 1) + token;
 
     // Read option value (can contain spaces)
     while (is >> token)
-        value += string(" ", value.empty() ? 0 : 1) + token;
+      value += string(" ", value.empty() ? 0 : 1) + token;
 
     if (Options.count(name))
-        Options[name] = value;
+      Options[name] = value;
     else
-        sync_cout << "No such option: " << name << sync_endl;
+      sync_cout << "No such option: " << name << sync_endl;
   }
 
 
@@ -132,23 +132,23 @@ namespace stockfishcli
     limits.startTime = now(); // As early as possible!
 
     while (is >> token)
-        if (token == "searchmoves")
-            while (is >> token)
-                limits.searchmoves.push_back(UCI::to_move(pos, token));
+      if (token == "searchmoves")
+        while (is >> token)
+          limits.searchmoves.push_back(UCI::to_move(pos, token));
 
-        else if (token == "wtime")     is >> limits.time[WHITE];
-        else if (token == "btime")     is >> limits.time[BLACK];
-        else if (token == "winc")      is >> limits.inc[WHITE];
-        else if (token == "binc")      is >> limits.inc[BLACK];
-        else if (token == "movestogo") is >> limits.movestogo;
-        else if (token == "depth")     is >> limits.depth;
-        else if (token == "nodes")     is >> limits.nodes;
-        else if (token == "movetime")  is >> limits.movetime;
-        else if (token == "mate")      is >> limits.mate;
-        else if (token == "infinite")  limits.infinite = 1;
-        else if (token == "ponder")    limits.ponder = 1;
+      else if (token == "wtime")     is >> limits.time[WHITE];
+      else if (token == "btime")     is >> limits.time[BLACK];
+      else if (token == "winc")      is >> limits.inc[WHITE];
+      else if (token == "binc")      is >> limits.inc[BLACK];
+      else if (token == "movestogo") is >> limits.movestogo;
+      else if (token == "depth")     is >> limits.depth;
+      else if (token == "nodes")     is >> limits.nodes;
+      else if (token == "movetime")  is >> limits.movetime;
+      else if (token == "mate")      is >> limits.mate;
+      else if (token == "infinite")  limits.infinite = 1;
+      else if (token == "ponder")    limits.ponder = 1;
 
-    Threads.start_thinking(pos, limits, SetupStates);
+    Threads.start_thinking(pos, States, limits);
   }
 
   Position pos;
@@ -166,25 +166,25 @@ namespace stockfishcli
     // already ran out of time), otherwise we should continue searching but
     // switching from pondering to normal search.
     if (    token == "quit"
-            ||  token == "stop"
-            || (token == "ponderhit" && Search::Signals.stopOnPonderhit))
-      {
-        Search::Signals.stop = true;
-        Threads.main()->start_searching(true); // Could be sleeping
-      }
+        ||  token == "stop"
+        || (token == "ponderhit" && Search::Signals.stopOnPonderhit))
+    {
+      Search::Signals.stop = true;
+      Threads.main()->start_searching(true); // Could be sleeping
+    }
     else if (token == "ponderhit")
       Search::Limits.ponder = 0; // Switch to normal search
 
     else if (token == "uci")
       sync_cout << "id name " << engine_info(true)
-                << "\n"       << Options
-                << "\nuciok"  << sync_endl;
+        << "\n"       << Options
+        << "\nuciok"  << sync_endl;
 
     else if (token == "ucinewgame")
-      {
-        Search::clear();
-        Time.availableNodes = 0;
-      }
+    {
+      Search::clear();
+      Time.availableNodes = 0;
+    }
     else if (token == "isready")    sync_cout << "readyok" << sync_endl;
     else if (token == "go")         go(pos, is);
     else if (token == "position")   position(pos, is);
@@ -197,4 +197,5 @@ namespace stockfishcli
     else
       sync_cout << "Unknown command: " << cmd << sync_endl;
   }
+
 }
