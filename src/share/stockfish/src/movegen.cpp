@@ -73,9 +73,28 @@ namespace {
   }
 
 
+#ifdef ANTI
+  template<GenType Type, Square Delta>
+  ExtMove* make_promotions(const Position& pos, ExtMove* moveList, Square to, const CheckInfo* ci) {
+#else
   template<GenType Type, Square Delta>
   ExtMove* make_promotions(ExtMove* moveList, Square to, const CheckInfo* ci) {
+#endif
 
+#ifdef ANTI
+    if (pos.is_anti())
+    {
+        if (Type == CAPTURES || Type == NON_EVASIONS)
+        {
+            *moveList++ = make<PROMOTION>(to - Delta, to, QUEEN);
+            *moveList++ = make<PROMOTION>(to - Delta, to, ROOK);
+            *moveList++ = make<PROMOTION>(to - Delta, to, BISHOP);
+            *moveList++ = make<PROMOTION>(to - Delta, to, KNIGHT);
+            *moveList++ = make<PROMOTION>(to - Delta, to, KING);
+        }
+        return moveList;
+    }
+#endif
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
         *moveList++ = make<PROMOTION>(to - Delta, to, QUEEN);
 
@@ -126,6 +145,10 @@ namespace {
     if (Type != CAPTURES)
     {
         emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
+#ifdef ANTI
+        if (pos.is_anti())
+            emptySquares &= target;
+#endif
 
         Bitboard b1 = shift_bb<Up>(pawnsNotOn7)   & emptySquares;
         Bitboard b2 = shift_bb<Up>(b1 & TRank3BB) & emptySquares;
@@ -184,6 +207,10 @@ namespace {
                 emptySquares &= target;
 #endif
         }
+#ifdef ANTI
+        if (pos.is_anti())
+            emptySquares &= target;
+#endif
 
         if (Type == EVASIONS)
             emptySquares &= target;
@@ -193,13 +220,25 @@ namespace {
         Bitboard b3 = shift_bb<Up   >(pawnsOn7) & emptySquares;
 
         while (b1)
+#ifdef ANTI
+            moveList = make_promotions<Type, Right>(pos, moveList, pop_lsb(&b1), ci);
+#else
             moveList = make_promotions<Type, Right>(moveList, pop_lsb(&b1), ci);
+#endif
 
         while (b2)
+#ifdef ANTI
+            moveList = make_promotions<Type, Left >(pos, moveList, pop_lsb(&b2), ci);
+#else
             moveList = make_promotions<Type, Left >(moveList, pop_lsb(&b2), ci);
+#endif
 
         while (b3)
+#ifdef ANTI
+            moveList = make_promotions<Type, Up   >(pos, moveList, pop_lsb(&b3), ci);
+#else
             moveList = make_promotions<Type, Up   >(moveList, pop_lsb(&b3), ci);
+#endif
     }
 
     // Standard and en-passant captures
@@ -288,6 +327,20 @@ namespace {
     moveList = generate_moves<  ROOK, Checks>(pos, moveList, Us, target, ci);
     moveList = generate_moves< QUEEN, Checks>(pos, moveList, Us, target, ci);
 
+#ifdef ANTI
+    if (pos.is_anti())
+    {
+        Bitboard kings = pos.pieces(Us, KING);
+        while (kings)
+        {
+            Square ksq = pop_lsb(&kings);
+            Bitboard b = pos.attacks_from<KING>(ksq) & target;
+            while (b)
+                *moveList++ = make_move(ksq, pop_lsb(&b));
+        }
+        return moveList;
+    }
+#endif
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
         Square ksq = pos.square<KING>(Us);
@@ -336,6 +389,10 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
   Bitboard target =  Type == CAPTURES     ?  pos.pieces(~us)
                    : Type == QUIETS       ? ~pos.pieces()
                    : Type == NON_EVASIONS ? ~pos.pieces(us) : 0;
+#ifdef ANTI
+  if (pos.is_anti() && pos.can_capture())
+      target &= pos.pieces(~us);
+#endif
 #ifdef ATOMIC
   if (pos.is_atomic() && Type == CAPTURES)
       target &= ~pos.attacks_from<KING>(pos.square<KING>(us));
@@ -355,6 +412,10 @@ template ExtMove* generate<NON_EVASIONS>(const Position&, ExtMove*);
 /// underpromotions that give check. Returns a pointer to the end of the move list.
 template<>
 ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
+#ifdef ANTI
+  if (pos.is_anti())
+      return moveList;
+#endif
 
   assert(!pos.checkers());
 
@@ -388,6 +449,10 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
 /// to move is in check. Returns a pointer to the end of the move list.
 template<>
 ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
+#ifdef ANTI
+  if (pos.is_anti())
+      return moveList;
+#endif
 
   assert(pos.checkers());
 
@@ -477,6 +542,10 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
 #endif
 #ifdef THREECHECK
   if (pos.is_three_check() && (pos.is_three_check_win() || pos.is_three_check_loss()))
+      return moveList;
+#endif
+#ifdef ANTI
+  if (pos.is_anti() && (pos.is_anti_win() || pos.is_anti_loss()))
       return moveList;
 #endif
 

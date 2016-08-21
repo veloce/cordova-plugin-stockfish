@@ -194,6 +194,14 @@ enum Value : int {
   BishopValueMg = 836,   BishopValueEg = 907,
   RookValueMg   = 1270,  RookValueEg   = 1356,
   QueenValueMg  = 2521,  QueenValueEg  = 2658,
+#ifdef ANTI
+  PawnValueMgAnti   = -500,  PawnValueEgAnti   = -500,
+  KnightValueMgAnti = -500,  KnightValueEgAnti = -500,
+  BishopValueMgAnti = -500,  BishopValueEgAnti = -500,
+  RookValueMgAnti   = -500,  RookValueEgAnti   = -500,
+  QueenValueMgAnti  = -500,  QueenValueEgAnti  = -500,
+  KingValueMgAnti   = -500,  KingValueEgAnti   = -500,
+#endif
 
   MidgameLimit  = 15581, EndgameLimit  = 3998
 };
@@ -418,6 +426,10 @@ inline MoveType type_of(Move m) {
 }
 
 inline PieceType promotion_type(Move m) {
+#ifdef ANTI
+  if ((m >> 16) & 1)
+      return KING;
+#endif
   return PieceType(((m >> 12) & 3) + KNIGHT);
 }
 
@@ -427,6 +439,10 @@ inline Move make_move(Square from, Square to) {
 
 template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
+#ifdef ANTI
+  if (pt == KING)
+      return Move(to | (from << 6) | T | ((pt - KNIGHT) << 12) | (1 << 16));
+#endif
   return Move(to | (from << 6) | T | ((pt - KNIGHT) << 12));
 }
 

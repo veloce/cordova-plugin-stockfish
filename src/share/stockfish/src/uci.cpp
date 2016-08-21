@@ -42,6 +42,10 @@ namespace {
   // FEN string of the initial position, horde variant
   const char* StartFENHorde = "rnbqkbnr/pppppppp/8/1PP2PP1/PPPPPPPP/PPPPPPPP/PPPPPPPP/PPPPPPPP w kq - 0 1";
 #endif
+#ifdef RACE
+  // FEN string of the initial position, race variant
+  const char* StartFENRace = "8/8/8/8/8/8/krbnNBRK/qrbnNBRQ w - - 0 1";
+#endif
 
   // A list to keep track of the position states along the setup moves (from the
   // start position to the position just before the search starts). Needed by
@@ -86,13 +90,23 @@ namespace {
     if (Options["UCI_3Check"])
         variant |= THREECHECK_VARIANT;
 #endif
+#ifdef ANTI
+    if (Options["UCI_Anti"])
+        variant |= ANTI_VARIANT;
+#endif
 
     is >> token;
     if (token == "startpos")
     {
 #ifdef HORDE
-        fen = (variant & HORDE_VARIANT) ? StartFENHorde : StartFEN;
-#else
+        if(variant & HORDE_VARIANT)
+            fen = StartFENHorde;
+        else
+#ifdef RACE
+        if(variant & RACE_VARIANT)
+            fen = StartFENRace;
+        else
+#endif
         fen = StartFEN;
 #endif
         is >> token; // Consume "moves" token if any
@@ -142,7 +156,7 @@ namespace {
   // the thinking time and other parameters from the input string, then starts
   // the search.
 
-  void go(const Position& pos, istringstream& is) {
+  void go(Position& pos, istringstream& is) {
 
     Search::LimitsType limits;
     string token;

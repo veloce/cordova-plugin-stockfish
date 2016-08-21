@@ -495,7 +495,7 @@ static int probe_dtz_no_ep(Position& pos, int *success)
                 || !pos.legal(move, ci.pinned))
         continue;
       pos.do_move(move, st, pos.gives_check(move, ci));
-      int v = -probe_ab(pos, -2, -wdl + 1, success);
+      int v = -Tablebases::probe_wdl(pos, success);
       pos.undo_move(move);
       if (*success == 0) return 0;
       if (v == wdl)
@@ -694,6 +694,9 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 #ifdef KOTH
   if (pos.is_koth()) return false;
 #endif
+#ifdef RACE
+  if (pos.is_race()) return false;
+#endif
 #ifdef THREECHECK
   if (pos.is_three_check()) return false;
 #endif
@@ -702,6 +705,9 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 #endif
 #ifdef ATOMIC
   if (pos.is_atomic()) return false;
+#endif
+#ifdef ANTI
+  if (pos.is_anti()) return false;
 #endif
 
   int dtz = probe_dtz(pos, &success);
@@ -813,6 +819,9 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Val
 #ifdef KOTH
   if (pos.is_koth()) return false;
 #endif
+#ifdef RACE
+  if (pos.is_race()) return false;
+#endif
 #ifdef THREECHECK
   if (pos.is_three_check()) return false;
 #endif
@@ -821,6 +830,9 @@ bool Tablebases::root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, Val
 #endif
 #ifdef ATOMIC
   if (pos.is_atomic()) return false;
+#endif
+#ifdef ANTI
+  if (pos.is_anti()) return false;
 #endif
 
   int wdl = Tablebases::probe_wdl(pos, &success);

@@ -39,6 +39,7 @@
 #define KOTH_VARIANT 1 << 5
 #define RACE_VARIANT 1 << 6
 #define THREECHECK_VARIANT 1 << 7
+#define ANTI_VARIANT 1 << 8
 
 class Position;
 class Thread;
@@ -46,6 +47,9 @@ class Thread;
 namespace PSQT {
 
   extern Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+#ifdef ANTI
+  extern Score psqAnti[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+#endif
 
   void init();
 }
@@ -146,6 +150,7 @@ public:
   Bitboard attacks_from(Piece pc, Square s) const;
   template<PieceType> Bitboard attacks_from(Square s) const;
   template<PieceType> Bitboard attacks_from(Square s, Color c) const;
+  Bitboard slider_blockers(Bitboard target, Bitboard sliders, Square s) const;
 
   // Properties of moves
   bool legal(Move m, Bitboard pinned) const;
@@ -216,6 +221,12 @@ public:
   Checks checks_given() const;
   Checks checks_taken() const;
 #endif
+#ifdef ANTI
+  bool is_anti() const;
+  bool is_anti_win() const;
+  bool is_anti_loss() const;
+  bool can_capture() const;
+#endif
   Thread* this_thread() const;
   uint64_t nodes_searched() const;
   void set_nodes_searched(uint64_t n);
@@ -234,7 +245,6 @@ private:
   void set_state(StateInfo* si) const;
 
   // Other helpers
-  Bitboard check_blockers(Color c, Color kingColor) const;
   void put_piece(Color c, PieceType pt, Square s);
   void remove_piece(Color c, PieceType pt, Square s);
   void move_piece(Color c, PieceType pt, Square from, Square to);
@@ -326,6 +336,11 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
   if (is_atomic() && pieceCount[c][Pt] == 0)
       return SQ_NONE;
 #endif
+#ifdef ANTI
+  // There may be zero, one, or multiple kings
+  if (is_anti())
+      return SQ_NONE;
+#endif
   assert(pieceCount[c][Pt] == 1);
   return pieceList[c][Pt][0];
 }
@@ -401,11 +416,11 @@ inline Bitboard Position::checkers() const {
 }
 
 inline Bitboard Position::discovered_check_candidates() const {
-  return check_blockers(sideToMove, ~sideToMove);
+  return slider_blockers(pieces(sideToMove), pieces(sideToMove), square<KING>(~sideToMove));
 }
 
 inline Bitboard Position::pinned_pieces(Color c) const {
-  return check_blockers(c, c);
+  return slider_blockers(pieces(c), pieces(~c), square<KING>(c));
 }
 
 inline bool Position::pawn_passed(Color c, Square s) const {
@@ -496,6 +511,34 @@ inline bool Position::is_horde() const {
 // Loss if horde is captured (Horde)
 inline bool Position::is_horde_loss() const {
   return count<ALL_PIECES>(WHITE) == 0;
+}
+#endif
+
+#ifdef ANTI
+inline bool Position::is_anti() const {
+  return var & ANTI_VARIANT;
+}
+
+inline bool Position::is_anti_loss() const {
+  return count<ALL_PIECES>(~sideToMove) == 0;
+}
+
+inline bool Position::is_anti_win() const {
+  return count<ALL_PIECES>(sideToMove) == 0;
+}
+
+inline bool Position::can_capture() const {
+  if (ep_square() != SQ_NONE)
+      if (attackers_to(ep_square()) & pieces(sideToMove, PAWN))
+          return true;
+  Bitboard b = pieces(sideToMove);
+  while (b)
+  {
+      Square s = pop_lsb(&b);
+      if (attacks_from(piece_on(s), s) & pieces(~sideToMove))
+          return true;
+  }
+  return false;
 }
 #endif
 
