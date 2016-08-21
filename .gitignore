@@ -1,2 +1,3 @@
-src/android/libs
-src/android/obj
+src/stockfish
+src/.depend
+*.o
