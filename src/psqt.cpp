@@ -22,14 +22,60 @@
 
 #include "types.h"
 
-Value PieceValue[PHASE_NB][PIECE_NB] = {
-{ VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
-{ VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
+Value PieceValue[VARIANT_NB][PHASE_NB][PIECE_NB] = {
+{
+  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
+  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg },
+},
 #ifdef ANTI
-Value PieceValueAnti[PHASE_NB][PIECE_NB] = {
-{ VALUE_ZERO, PawnValueMgAnti, KnightValueMgAnti, BishopValueMgAnti, RookValueMgAnti, QueenValueMgAnti, KingValueMgAnti },
-{ VALUE_ZERO, PawnValueEgAnti, KnightValueEgAnti, BishopValueEgAnti, RookValueEgAnti, QueenValueEgAnti, KingValueEgAnti } };
+{
+  { VALUE_ZERO, PawnValueMgAnti, KnightValueMgAnti, BishopValueMgAnti, RookValueMgAnti, QueenValueMgAnti, KingValueMgAnti },
+  { VALUE_ZERO, PawnValueEgAnti, KnightValueEgAnti, BishopValueEgAnti, RookValueEgAnti, QueenValueEgAnti, KingValueEgAnti },
+},
 #endif
+#ifdef ATOMIC
+{
+  { VALUE_ZERO, PawnValueMgAtomic, KnightValueMgAtomic, BishopValueMgAtomic, RookValueMgAtomic, QueenValueMgAtomic },
+  { VALUE_ZERO, PawnValueEgAtomic, KnightValueEgAtomic, BishopValueEgAtomic, RookValueEgAtomic, QueenValueEgAtomic },
+},
+#endif
+#ifdef CRAZYHOUSE
+{
+  { VALUE_ZERO, PawnValueMgHouse, KnightValueMgHouse, BishopValueMgHouse, RookValueMgHouse, QueenValueMgHouse },
+  { VALUE_ZERO, PawnValueEgHouse, KnightValueEgHouse, BishopValueEgHouse, RookValueEgHouse, QueenValueEgHouse },
+},
+#endif
+#ifdef HORDE
+{
+  { VALUE_ZERO, PawnValueMgHorde, KnightValueMgHorde, BishopValueMgHorde, RookValueMgHorde, QueenValueMgHorde, KingValueMgHorde },
+  { VALUE_ZERO, PawnValueEgHorde, KnightValueEgHorde, BishopValueEgHorde, RookValueEgHorde, QueenValueEgHorde, KingValueEgHorde },
+},
+#endif
+#ifdef KOTH
+{
+  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
+  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg },
+},
+#endif
+#ifdef RACE
+{
+  { VALUE_ZERO, VALUE_ZERO, KnightValueMgRace, BishopValueMgRace, RookValueMgRace, QueenValueMgRace },
+  { VALUE_ZERO, VALUE_ZERO, KnightValueEgRace, BishopValueEgRace, RookValueEgRace, QueenValueEgRace },
+},
+#endif
+#ifdef RELAY
+{
+  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
+  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg },
+},
+#endif
+#ifdef THREECHECK
+{
+  { VALUE_ZERO, PawnValueMgThreeCheck, KnightValueMgThreeCheck, BishopValueMgThreeCheck, RookValueMgThreeCheck, QueenValueMgThreeCheck },
+  { VALUE_ZERO, PawnValueEgThreeCheck, KnightValueEgThreeCheck, BishopValueEgThreeCheck, RookValueEgThreeCheck, QueenValueEgThreeCheck },
+},
+#endif
+};
 
 namespace PSQT {
 
@@ -102,39 +148,41 @@ const Score Bonus[][RANK_NB][int(FILE_NB) / 2] = {
   }
 };
 
-#undef S
-
-Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
-#ifdef ANTI
-Score psqAnti[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+#ifdef CRAZYHOUSE
+Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB+1];
+const Score inHandBonus[PIECE_TYPE_NB] = {
+    S(0, 0), S(44, 18), S(41, 31), S(11, 2), S(14, 0), S(25, 15)
+};
+#else
+Score psq[VARIANT_NB][PIECE_NB][SQUARE_NB];
 #endif
+
+#undef S
 
 // init() initializes piece-square tables: the white halves of the tables are
 // copied from Bonus[] adding the piece value, then the black halves of the
 // tables are initialized by flipping and changing the sign of the white scores.
 void init() {
 
-  for (PieceType pt = PAWN; pt <= KING; ++pt)
-  {
-      PieceValue[MG][make_piece(BLACK, pt)] = PieceValue[MG][pt];
-      PieceValue[EG][make_piece(BLACK, pt)] = PieceValue[EG][pt];
-
-      Score v = make_score(PieceValue[MG][pt], PieceValue[EG][pt]);
-#ifdef ANTI
-      Score vAnti = make_score(PieceValueAnti[MG][pt], PieceValueAnti[EG][pt]);
-#endif
-
-      for (Square s = SQ_A1; s <= SQ_H8; ++s)
+  for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
+      for (Piece pc = W_PAWN; pc <= W_KING; ++pc)
       {
-          File f = std::min(file_of(s), FILE_H - file_of(s));
-          psq[WHITE][pt][ s] = v + Bonus[pt][rank_of(s)][f];
-          psq[BLACK][pt][~s] = -psq[WHITE][pt][s];
-#ifdef ANTI
-          psqAnti[WHITE][pt][ s] = vAnti + Bonus[pt][rank_of(s)][f];
-          psqAnti[BLACK][pt][~s] = -psqAnti[WHITE][pt][s];
+          PieceValue[var][MG][~pc] = PieceValue[var][MG][pc];
+          PieceValue[var][EG][~pc] = PieceValue[var][EG][pc];
+
+          Score v = make_score(PieceValue[var][MG][pc], PieceValue[var][EG][pc]);
+
+          for (Square s = SQ_A1; s <= SQ_H8; ++s)
+          {
+              File f = std::min(file_of(s), FILE_H - file_of(s));
+              psq[var][ pc][ s] = v + Bonus[pc][rank_of(s)][f];
+              psq[var][~pc][~s] = -psq[var][pc][s];
+          }
+#ifdef CRAZYHOUSE
+          psq[var][ pc][SQ_NONE] = v + inHandBonus[type_of(pc)];
+          psq[var][~pc][SQ_NONE] = -psq[var][pc][SQ_NONE];
 #endif
       }
-  }
 }
 
 } // namespace PSQT
