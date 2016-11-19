@@ -50,8 +50,6 @@
     <source-file src="src/share/stockfish/src/types.h" target-dir="./jni/stockfish" />
     <source-file src="src/share/stockfish/src/syzygy/tbprobe.cpp" target-dir="./jni/stockfish/syzygy" />
     <source-file src="src/share/stockfish/src/syzygy/tbprobe.h" target-dir="./jni/stockfish/syzygy" />
-    <source-file src="src/share/stockfish/src/syzygy/tbcore.cpp" target-dir="./jni/stockfish/syzygy" />
-    <source-file src="src/share/stockfish/src/syzygy/tbcore.h" target-dir="./jni/stockfish/syzygy" />
 
     <config-file target="res/xml/config.xml" parent="/*">
       <feature name="CordovaPluginStockfish">
@@ -91,8 +89,6 @@
     <header-file src="src/share/stockfish/src/tt.h" target-dir="./stockfish" />
     <header-file src="src/share/stockfish/src/uci.h" target-dir="./stockfish" />
     <header-file src="src/share/stockfish/src/types.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/syzygy/tbcore.cpp" target-dir="./stockfish/syzygy" />
-    <header-file src="src/share/stockfish/src/syzygy/tbcore.h" target-dir="./stockfish/syzygy" />
     <header-file src="src/share/stockfish/src/syzygy/tbprobe.h" target-dir="./stockfish/syzygy" />
 
     <source-file src="src/share/stockfish/src/benchmark.cpp" target-dir="./stockfish" />

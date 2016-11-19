@@ -19,6 +19,10 @@ static jmethodID onMessage;
 
 static std::string CMD_EXIT = "stockfish:exit";
 
+namespace PSQT {
+  void init();
+}
+
 auto readstdout = []() {
   JNIEnv *jenv;
 
@@ -73,10 +77,9 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit
   Position::init();
   Bitbases::init();
   Search::init();
-  Eval::init();
   Pawns::init();
   Threads.init();
-  Tablebases::init(Options["SyzygyPath"]);
+  Tablebases::init(Options["SyzygyPath"], CHESS_VARIANT);
   TT.resize(Options["Hash"]);
 }
 
