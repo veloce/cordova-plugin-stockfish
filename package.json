@@ -1,0 +1,35 @@
+{
+  "name": "cordova-plugin-stockfish",
+  "version": "1.1.0",
+  "description": "Cordova interface to Stockfish chess engine.",
+  "cordova": {
+    "id": "cordova-plugin-stockfish",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/veloce/cordova-plugin-stockfish.git"
+  },
+  "keywords": [
+    "cordova",
+    "stockfish",
+    "chess",
+    "chess variants",
+    "chess 960",
+    "crazyhouse",
+    "three-checks",
+    "atomic chess",
+    "ecosystem:cordova",
+    "cordova-android",
+    "cordova-ios"
+  ],
+  "author": "Sébastien Renault",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/veloce/cordova-plugin-stockfish/issues"
+  },
+  "homepage": "https://github.com/veloce/cordova-plugin-stockfish#readme"
+}
