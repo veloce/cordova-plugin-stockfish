@@ -11,6 +11,27 @@ Cordova interface for the Stockfish chess engine.
 
 * [android ndk](http://developer.android.com/ndk/index.html)
 
+## Usage
+
+`Stockfish` global object exposes only 4 methods. Except for `output`, they all
+return promises:
+
+```js
+// init engine
+Stockfish.init().then(() => console.log('engine ready'))
+
+// send commands
+Stockfish.cmd('position startpos').then(() => console.log('command success'))
+
+// register output listener
+Stockfish.output(function(message) {
+  console.log('stockfish message received:', message)
+})
+
+// exit engine
+Stockfish.exit().then(() => console.log('engine successfully exited'))
+```
+
 ## Upgrade stockfish (lichess)
 
 ```
