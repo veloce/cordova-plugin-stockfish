@@ -11,6 +11,10 @@
 #include "tbprobe.h"
 #include "CordovaPluginStockfishc.h"
 
+namespace PSQT {
+  void init();
+}
+
 namespace stockfishios
 {
   static std::string CMD_EXIT = "stockfish:exit";
@@ -53,10 +57,9 @@ namespace stockfishios
     Position::init();
     Bitbases::init();
     Search::init();
-    Eval::init();
     Pawns::init();
     Threads.init();
-    Tablebases::init(Options["SyzygyPath"]);
+    Tablebases::init(Options["SyzygyPath"], CHESS_VARIANT);
     TT.resize(Options["Hash"]);
   }
 
