@@ -49,7 +49,7 @@ namespace Zobrist {
   Key psq[PIECE_NB][SQUARE_NB];
   Key enpassant[FILE_NB];
   Key castling[CASTLING_RIGHT_NB];
-  Key side;
+  Key side, noPawns;
   Key variant[VARIANT_NB];
 #ifdef CRAZYHOUSE
   Key inHand[PIECE_NB][17];
@@ -127,7 +127,7 @@ PieceType min_attacker_anti<NO_PIECE_TYPE>(const Bitboard* bb, Square to, Bitboa
 
 /// operator<<(Position) returns an ASCII representation of the position
 
-std::ostream& operator<<(std::ostream& os, Position& pos) {
+std::ostream& operator<<(std::ostream& os, const Position& pos) {
 
   os << "\n +---+---+---+---+---+---+---+---+\n";
 
@@ -149,9 +149,12 @@ std::ostream& operator<<(std::ostream& os, Position& pos) {
   if (    int(Tablebases::MaxCardinality) >= popcount(pos.pieces())
       && !pos.can_castle(ANY_CASTLING))
   {
+      StateInfo st;
+      Position p;
+      p.set(pos.fen(), pos.is_chess960(), pos.variant(), &st, pos.this_thread());
       Tablebases::ProbeState s1, s2;
-      Tablebases::WDLScore wdl = Tablebases::probe_wdl(pos, &s1);
-      int dtz = Tablebases::probe_dtz(pos, &s2);
+      Tablebases::WDLScore wdl = Tablebases::probe_wdl(p, &s1);
+      int dtz = Tablebases::probe_dtz(p, &s2);
       os << "\nTablebases WDL: " << std::setw(4) << wdl << " (" << s1 << ")"
          << "\nTablebases DTZ: " << std::setw(4) << dtz << " (" << s2 << ")";
   }
@@ -186,6 +189,7 @@ void Position::init() {
   }
 
   Zobrist::side = rng.rand<Key>();
+  Zobrist::noPawns = rng.rand<Key>();
 
   for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
       Zobrist::variant[var] = var == CHESS_VARIANT ? 0 : rng.rand<Key>();
@@ -263,7 +267,13 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
           sq += Square(token - '0'); // Advance the given number of files
 
       else if (token == '/')
+      {
+#ifdef CRAZYHOUSE
+          if (is_house() && sq < Square(16))
+              break;
+#endif
           sq -= Square(16);
+      }
 
       else if ((idx = PieceToChar.find(token)) != string::npos)
       {
@@ -370,36 +380,35 @@ Position& Position::set(const string& fenStr, bool isChess960, Variant v, StateI
       st->epSquare = SQ_NONE;
 
 #ifdef THREECHECK
-    st->checksGiven[WHITE] = CHECKS_0;
-    st->checksGiven[BLACK] = CHECKS_0;
-    if (is_three_check())
-    {
-        // 7. Checks given counter for Three-Check positions
-        if ((ss >> std::skipws >> token))
-        {
-            switch('3' - token)
-            {
-            case 0: st->checksGiven[WHITE] = CHECKS_0; break;
-            case 1: st->checksGiven[WHITE] = CHECKS_1; break;
-            case 2: st->checksGiven[WHITE] = CHECKS_2; break;
-            case 3: st->checksGiven[WHITE] = CHECKS_3; break;
-            default: st->checksGiven[WHITE] = CHECKS_NB;
-            }
-            ss >> token >> token;
-            switch('3' - token)
-            {
-            case 0: st->checksGiven[BLACK] = CHECKS_0; break;
-            case 1: st->checksGiven[BLACK] = CHECKS_1; break;
-            case 2: st->checksGiven[BLACK] = CHECKS_2; break;
-            case 3: st->checksGiven[BLACK] = CHECKS_3; break;
-            default : st->checksGiven[BLACK] = CHECKS_NB;
-            }
-        }
-    }
+  // Remaining checks counter for Three-Check positions
+  st->checksGiven[WHITE] = CHECKS_0;
+  st->checksGiven[BLACK] = CHECKS_0;
+
+  ss >> std::skipws >> token;
+
+  if (is_three_check() && ss.peek() == '+')
+  {
+      st->checksGiven[WHITE] = CheckCount(std::max(std::min('3' - token, 3), 0));
+      ss >> token >> token;
+      st->checksGiven[BLACK] = CheckCount(std::max(std::min('3' - token, 3), 0));
+  }
+  else
+      ss.putback(token);
 #endif
 
   // 5-6. Halfmove clock and fullmove number
   ss >> std::skipws >> st->rule50 >> gamePly;
+
+#ifdef THREECHECK
+  // Checks given in Three-Check positions
+  if (is_three_check() && (ss >> token) && token == '+')
+  {
+      ss >> token;
+      st->checksGiven[WHITE] = CheckCount(std::max(std::min(token - '0', 3), 0));
+      ss >> token >> token;
+      st->checksGiven[BLACK] = CheckCount(std::max(std::min(token - '0', 3), 0));
+  }
+#endif
 
   // Convert from fullmove starting from 1 to ply starting from 0,
   // handle also common incorrect FEN with fullmove = 0.
@@ -507,8 +516,9 @@ void Position::set_check_info(StateInfo* si) const {
 
 void Position::set_state(StateInfo* si) const {
 
-  si->key = si->pawnKey = si->materialKey = 0;
+  si->key = si->materialKey = 0;
   si->key ^= Zobrist::variant[var];
+  si->pawnKey = Zobrist::noPawns;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
   set_check_info(si);
@@ -592,24 +602,23 @@ void Position::set_state(StateInfo* si) const {
 
 
 /// Position::set() is an overload to initialize the position object with
-/// the given endgame code string like "KBPKN". It is manily an helper to
+/// the given endgame code string like "KBPvKN". It is mainly an helper to
 /// get the material key out of an endgame code. Position is not playable,
 /// indeed is even not guaranteed to be legal.
 
-Position& Position::set(const string& code, Color c, StateInfo* si) {
+Position& Position::set(const string& code, Color c, Variant v, StateInfo* si) {
 
-  assert(code.length() > 0 && code.length() < 8);
-  assert(code[0] == 'K');
+  assert(code.length() > 0 && code.length() < 9);
 
-  string sides[] = { code.substr(code.find('K', 1)),      // Weak
-                     code.substr(0, code.find('K', 1)) }; // Strong
+  string sides[] = { code.substr(code.find('v') + 1),  // Weak
+                     code.substr(0, code.find('v')) }; // Strong
 
   std::transform(sides[c].begin(), sides[c].end(), sides[c].begin(), tolower);
 
   string fenStr =  sides[0] + char(8 - sides[0].length() + '0') + "/8/8/8/8/8/8/"
                  + sides[1] + char(8 - sides[1].length() + '0') + " w - - 0 10";
 
-  return set(fenStr, false, CHESS_VARIANT, si, nullptr);
+  return set(fenStr, false, v, si, nullptr);
 }
 
 
@@ -1290,8 +1299,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Update hash key
 #ifdef CRAZYHOUSE
   if (type_of(m) == DROP)
+  {
       k ^= Zobrist::psq[pc][to] ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)]]
           ^ Zobrist::inHand[pc][pieceCountInHand[color_of(pc)][type_of(pc)] + 1];
+      if (type_of(pc) != PAWN)
+          st->nonPawnMaterial[us] += PieceValue[CHESS_VARIANT][MG][type_of(pc)];
+  }
   else
 #endif
   k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
@@ -1867,18 +1880,24 @@ bool Position::is_draw() const {
   if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
 
-  StateInfo* stp = st;
 #ifdef CRAZYHOUSE
-  for (int i = 2, rep = 1, e = is_house() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull); i <= e; i += 2)
+  int rep = 1, e = is_house() ? st->pliesFromNull : std::min(st->rule50, st->pliesFromNull);
 #else
-  for (int i = 2, rep = 1, e = std::min(st->rule50, st->pliesFromNull); i <= e; i += 2)
+  int rep = 1, e = std::min(st->rule50, st->pliesFromNull);
 #endif
-  {
+
+  if (e < 4)
+    return false;
+
+  StateInfo* stp = st->previous->previous;
+
+  do {
       stp = stp->previous->previous;
 
-      if (stp->key == st->key && (++rep >= 2 + (gamePly - i < thisThread->rootPos.game_ply())))
+      if (stp->key == st->key && (++rep >= 2 + (gamePly - e < thisThread->rootPly)))
           return true; // Draw at first repetition in search, and second repetition in game tree.
-  }
+
+  } while ((e -= 2) >= 4);
 
   return false;
 }
