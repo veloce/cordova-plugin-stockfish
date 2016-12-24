@@ -67,10 +67,8 @@
 
     <header-file src="src/ios/CordovaPluginStockfish.h" />
     <source-file src="src/ios/CordovaPluginStockfish.mm" />
-    <source-file src="src/ios/stockfishcli.cpp" />
     <header-file src="src/ios/CordovaPluginStockfishc.h" />
     <header-file src="src/ios/CordovaPluginStockfishios.h" />
-    <header-file src="src/ios/stockfishcli.h" />
     <header-file src="src/share/threadbuf.h" />
 
     <header-file src="src/share/stockfish/src/bitboard.h" target-dir="./stockfish" />

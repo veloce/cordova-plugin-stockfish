@@ -1,5 +1,4 @@
 #include "threadbuf.h"
-#include "stockfishcli.h"
 #include "uci.h"
 #include "bitboard.h"
 #include "position.h"
@@ -64,7 +63,7 @@ namespace stockfishios
   }
 
   void cmd(std::string cmd) {
-    stockfishcli::command(cmd);
+    UCI::command(cmd);
   }
 
   void exit() {

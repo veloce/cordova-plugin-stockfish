@@ -1,6 +1,5 @@
 #include <jni.h>
 #include <string>
-#include <stockfishcli.h>
 #include <threadbuf.h>
 #include <search.cpp>
 #include <android/log.h>
@@ -91,6 +90,6 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniExit
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniCmd(JNIEnv *env, jobject obj, jstring jcmd) {
   const char *cmd = env->GetStringUTFChars(jcmd, (jboolean *)0);
-  stockfishcli::command(cmd);
+  UCI::command(cmd);
   env->ReleaseStringUTFChars(jcmd, cmd);
 }
