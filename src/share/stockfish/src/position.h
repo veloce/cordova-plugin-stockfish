@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -150,6 +150,10 @@ public:
   void undo_null_move();
 
   // Static Exchange Evaluation
+#ifdef ATOMIC
+  template<Variant V>
+  Value see(Move m) const;
+#endif
   bool see_ge(Move m, Value value) const;
 
   // Accessing hash keys
@@ -164,6 +168,11 @@ public:
   int game_ply() const;
   bool is_chess960() const;
   Variant variant() const;
+  Variant subvariant() const;
+  bool is_variant_end() const;
+  Value variant_result(int ply = 0, Value draw_value = VALUE_DRAW) const;
+  Value checkmate_value(int ply = 0) const;
+  Value stalemate_value(int ply = 0, Value draw_value = VALUE_DRAW) const;
 #ifdef ATOMIC
   bool is_atomic() const;
   bool is_atomic_win() const;
@@ -183,11 +192,23 @@ public:
   void drop_piece(Piece pc, Square s);
   void undrop_piece(Piece pc, Square s);
 #endif
+#ifdef BUGHOUSE
+  bool is_bughouse() const;
+#endif
+#ifdef LOOP
+  bool is_loop() const;
+#endif
 #ifdef KOTH
   bool is_koth() const;
   bool is_koth_win() const;
   bool is_koth_loss() const;
   int koth_distance(Color c) const;
+#endif
+#ifdef LOSERS
+  bool is_losers() const;
+  bool is_losers_win() const;
+  bool is_losers_loss() const;
+  bool can_capture_losers() const;
 #endif
 #ifdef RACE
   bool is_race() const;
@@ -211,9 +232,12 @@ public:
   bool is_anti_loss() const;
   bool can_capture() const;
 #endif
+#ifdef SUICIDE
+  bool is_suicide() const;
+#endif
   Thread* this_thread() const;
   uint64_t nodes_searched() const;
-  bool is_draw() const;
+  bool is_draw(int ply) const;
   int rule50_count() const;
   Score psq_score() const;
   Value non_pawn_material(Color c) const;
@@ -263,6 +287,7 @@ private:
   StateInfo* st;
   bool chess960;
   Variant var;
+  Variant subvar;
 
 };
 
@@ -331,7 +356,7 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
 #endif
 #ifdef ANTI
   // There may be zero, one, or multiple kings
-  if (is_anti() && Pt == KING)
+  if (is_anti() && pieceCount[make_piece(c, Pt)] == 0)
       return SQ_NONE;
 #endif
   assert(pieceCount[make_piece(c, Pt)] == 1);
@@ -541,6 +566,61 @@ inline bool Position::can_capture() const {
 }
 #endif
 
+#ifdef LOSERS
+inline bool Position::is_losers() const {
+  return var == LOSERS_VARIANT;
+}
+
+inline bool Position::is_losers_loss() const {
+  return count<ALL_PIECES>(~sideToMove) == 1;
+}
+
+inline bool Position::is_losers_win() const {
+  return count<ALL_PIECES>(sideToMove) == 1;
+}
+
+// Position::can_capture_losers checks whether we have a legal capture
+// in a losers chess position.
+
+inline bool Position::can_capture_losers() const {
+  // En passent captures
+  if (ep_square() != SQ_NONE
+      && (attackers_to(ep_square()) & pieces(sideToMove, PAWN) & ~pinned_pieces(sideToMove))
+      && !(checkers() - (ep_square() + (sideToMove == WHITE ? SOUTH : NORTH))))
+          return true;
+  Bitboard b = pieces(sideToMove);
+  // Double check forces the king to move
+  if (more_than_one(checkers()))
+      b &= pieces(sideToMove, KING);
+  // Loop over our pieces to find possible captures
+  while (b)
+  {
+      Square s = pop_lsb(&b);
+      Bitboard attacked = attacks_from(piece_on(s), s) & pieces(~sideToMove);
+      // A pinned piece may only take the pinner
+      if (pinned_pieces(sideToMove) & s)
+          attacked &= LineBB[s][square<KING>(sideToMove)];
+      // The king can only capture undefended pieces
+      if (type_of(piece_on(s)) == KING)
+      {
+          while (attacked)
+              if (!(attackers_to(pop_lsb(&attacked), pieces() ^ square<KING>(sideToMove)) & pieces(~sideToMove)))
+                  return true;
+      }
+      // If we are in check, any legal capture has to remove the checking piece
+      else if (checkers() ? attacked & checkers() : attacked)
+          return true;
+  }
+  return false;
+}
+#endif
+
+#ifdef SUICIDE
+inline bool Position::is_suicide() const {
+    return subvar == SUICIDE_VARIANT;
+}
+#endif
+
 #ifdef CRAZYHOUSE
 inline bool Position::is_house() const {
   return var == CRAZYHOUSE_VARIANT;
@@ -552,14 +632,28 @@ inline int Position::count_in_hand(Color c, PieceType pt) const {
 
 inline void Position::add_to_hand(Color c, PieceType pt) {
   pieceCountInHand[c][pt]++;
+  pieceCountInHand[c][ALL_PIECES]++;
 }
 
 inline void Position::remove_from_hand(Color c, PieceType pt) {
   pieceCountInHand[c][pt]--;
+  pieceCountInHand[c][ALL_PIECES]--;
 }
 
 inline bool Position::is_promoted(Square s) const {
   return promotedPieces & s;
+}
+#endif
+
+#ifdef BUGHOUSE
+inline bool Position::is_bughouse() const {
+  return subvar == BUGHOUSE_VARIANT;
+}
+#endif
+
+#ifdef LOOP
+inline bool Position::is_loop() const {
+  return subvar == LOOP_VARIANT;
 }
 #endif
 
@@ -633,6 +727,144 @@ inline bool Position::is_chess960() const {
 
 inline Variant Position::variant() const {
   return var;
+}
+
+inline Variant Position::subvariant() const {
+    return subvar;
+}
+
+inline bool Position::is_variant_end() const {
+  switch (var)
+  {
+#ifdef ANTI
+  case ANTI_VARIANT:
+      return is_anti_win() || is_anti_loss();
+#endif
+#ifdef ATOMIC
+  case ATOMIC_VARIANT:
+      return is_atomic_win() || is_atomic_loss();
+#endif
+#ifdef HORDE
+  case HORDE_VARIANT:
+      return is_horde_loss();
+#endif
+#ifdef KOTH
+  case KOTH_VARIANT:
+      return is_koth_win() || is_koth_loss();
+#endif
+#ifdef LOSERS
+  case LOSERS_VARIANT:
+      return is_losers_win() || is_losers_loss();
+#endif
+#ifdef RACE
+  case RACE_VARIANT:
+      return is_race_draw() || is_race_win() || is_race_loss();
+#endif
+#ifdef THREECHECK
+  case THREECHECK_VARIANT:
+      return is_three_check_win() || is_three_check_loss();
+#endif
+  default:
+      return false;
+  }
+}
+
+inline Value Position::variant_result(int ply, Value draw_value) const {
+  switch (var)
+  {
+#ifdef ANTI
+  case ANTI_VARIANT:
+      if (is_anti_win())
+          return mate_in(ply);
+      if (is_anti_loss())
+          return mated_in(ply);
+#endif
+#ifdef ATOMIC
+  case ATOMIC_VARIANT:
+      if (is_atomic_win())
+          return mate_in(ply);
+      if (is_atomic_loss())
+          return mated_in(ply);
+#endif
+#ifdef HORDE
+  case HORDE_VARIANT:
+      if (is_horde_loss())
+          return mated_in(ply);
+#endif
+#ifdef KOTH
+  case KOTH_VARIANT:
+      if (is_koth_win())
+          return mate_in(ply);
+      if (is_koth_loss())
+          return mated_in(ply);
+#endif
+#ifdef LOSERS
+  case LOSERS_VARIANT:
+      if (is_losers_win())
+          return mate_in(ply);
+      if (is_losers_loss())
+          return mated_in(ply);
+#endif
+#ifdef RACE
+  case RACE_VARIANT:
+      if (is_race_draw())
+          return draw_value;
+      if (is_race_win())
+          return mate_in(ply);
+      if (is_race_loss())
+          return mated_in(ply);
+#endif
+#ifdef THREECHECK
+  case THREECHECK_VARIANT:
+      if (is_three_check_win())
+          return mate_in(ply);
+      if (is_three_check_loss())
+          return mated_in(ply);
+#endif
+  default:;
+  }
+  // variant_result should not be called if is_variant_end is false.
+  assert(false);
+  return VALUE_ZERO;
+}
+
+inline Value Position::checkmate_value(int ply) const {
+#ifdef ANTI
+  assert(!is_anti());
+#endif
+#ifdef RACE
+  assert(!is_race());
+#endif
+#ifdef LOSERS
+  if (is_losers())
+      return mate_in(ply);
+#endif
+  return mated_in(ply);
+}
+
+inline Value Position::stalemate_value(int ply, Value drawValue) const {
+#ifdef ANTI
+  if (is_anti())
+  {
+#ifdef SUICIDE
+      if (is_suicide())
+      {
+          int balance = pieceCount[make_piece(sideToMove, ALL_PIECES)] - pieceCount[make_piece(~sideToMove, ALL_PIECES)];
+          if (balance > 0)
+              return mated_in(ply);
+          if (balance < 0)
+              return mate_in(ply);
+          return drawValue;
+      }
+#endif
+      return mate_in(ply);
+  }
+#endif
+#ifdef LOSERS
+  if (is_losers())
+      return mate_in(ply);
+#endif
+  return drawValue;
 }
 
 inline bool Position::capture_or_promotion(Move m) const {
@@ -715,13 +947,13 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
 inline void Position::drop_piece(Piece pc, Square s) {
   assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
   put_piece(pc, s);
-  pieceCountInHand[color_of(pc)][type_of(pc)]--;
+  remove_from_hand(color_of(pc), type_of(pc));
 }
 
 inline void Position::undrop_piece(Piece pc, Square s) {
   remove_piece(pc, s);
   board[s] = NO_PIECE;
-  pieceCountInHand[color_of(pc)][type_of(pc)]++;
+  add_to_hand(color_of(pc), type_of(pc));
   assert(pieceCountInHand[color_of(pc)][type_of(pc)]);
 }
 #endif

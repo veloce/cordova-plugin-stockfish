@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -49,6 +49,9 @@ namespace {
 #ifdef KOTH
     { S(45, 40), S(30, 27) },
 #endif
+#ifdef LOSERS
+    { S(50, 80), S(54, 69) },
+#endif
 #ifdef RACE
     {},
 #endif
@@ -77,6 +80,9 @@ namespace {
 #endif
 #ifdef KOTH
     { S(56, 33), S(41, 19) },
+#endif
+#ifdef LOSERS
+    { S(64, 25), S(26, 50) },
 #endif
 #ifdef RACE
     {},
@@ -107,6 +113,9 @@ namespace {
 #ifdef KOTH
     S( 17,   8),
 #endif
+#ifdef LOSERS
+    S(-45, -48),
+#endif
 #ifdef RACE
     S(  0,   0),
 #endif
@@ -134,10 +143,13 @@ namespace {
     S(18, 38),
 #endif
 #ifdef HORDE
-    S(-26, 78),
+    S(10, 78),
 #endif
 #ifdef KOTH
     S(18, 38),
+#endif
+#ifdef LOSERS
+    S( 4, 51),
 #endif
 #ifdef RACE
     S( 0,  0),
@@ -156,7 +168,8 @@ namespace {
     S(17, 16), S(33, 32), S(0, 0), S(0, 0)
   };
 
-  // Weakness of our pawn shelter in front of the king by [distance from edge][rank]
+  // Weakness of our pawn shelter in front of the king by [distance from edge][rank].
+  // RANK_1 = 0 is used for files where we have no pawns or our pawn is behind our king.
   const Value ShelterWeakness[VARIANT_NB][4][RANK_NB] = {
   {
     { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98) },
@@ -174,10 +187,10 @@ namespace {
 #endif
 #ifdef ATOMIC
   {
-    { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98) },
-    { V(116), V( 4), V(28), V(87), V(94), V(108), V(104) },
-    { V(109), V( 1), V(59), V(87), V(62), V( 91), V(116) },
-    { V( 75), V(12), V(43), V(59), V(90), V( 84), V(112) }
+    { V(100), V(50), V(10), V(46), V(82), V( 86), V( 98) },
+    { V(116), V(50), V(10), V(87), V(94), V(108), V(104) },
+    { V(109), V(50), V(10), V(87), V(62), V( 91), V(116) },
+    { V( 75), V(50), V(10), V(59), V(90), V( 84), V(112) }
   },
 #endif
 #ifdef CRAZYHOUSE
@@ -204,6 +217,14 @@ namespace {
     { V( 75), V(12), V(43), V(59), V(90), V( 84), V(112) }
   },
 #endif
+#ifdef LOSERS
+  {
+    { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98) },
+    { V(116), V( 4), V(28), V(87), V(94), V(108), V(104) },
+    { V(109), V( 1), V(59), V(87), V(62), V( 91), V(116) },
+    { V( 75), V(12), V(43), V(59), V(90), V( 84), V(112) }
+  },
+#endif
 #ifdef RACE
   {},
 #endif
@@ -217,33 +238,34 @@ namespace {
 #endif
 #ifdef THREECHECK
   {
-    { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98) },
-    { V(116), V( 4), V(28), V(87), V(94), V(108), V(104) },
-    { V(109), V( 1), V(59), V(87), V(62), V( 91), V(116) },
-    { V( 75), V(12), V(43), V(59), V(90), V( 84), V(112) }
+    { V(103), V( 0), V(21), V( 54), V(87), V( 89), V(100) },
+    { V(112), V( 3), V(54), V(105), V(85), V(105), V(100) },
+    { V(118), V(22), V(68), V( 93), V(60), V( 88), V(119) },
+    { V( 92), V(11), V(51), V( 66), V(93), V( 86), V(118) }
   },
 #endif
   };
 
-  // Danger of enemy pawns moving toward our king by [type][distance from edge][rank]
+  // Danger of enemy pawns moving toward our king by [type][distance from edge][rank].
+  // For the unopposed and unblocked cases, RANK_1 = 0 is used when opponent has no pawn
+  // on the given file, or their pawn is behind our king.
   const Value StormDanger[][4][RANK_NB] = {
-    { { V( 4),  V(  73), V( 132), V(46), V(31) },
+    { { V( 0),  V(-290), V(-274), V(57), V(41) },  //BlockedByKing
+      { V( 0),  V(  60), V( 144), V(39), V(13) },
+      { V( 0),  V(  65), V( 141), V(41), V(34) },
+      { V( 0),  V(  53), V( 127), V(56), V(14) } },
+    { { V( 4),  V(  73), V( 132), V(46), V(31) },  //Unopposed
       { V( 1),  V(  64), V( 143), V(26), V(13) },
       { V( 1),  V(  47), V( 110), V(44), V(24) },
       { V( 0),  V(  72), V( 127), V(50), V(31) } },
-    { { V(22),  V(  45), V( 104), V(62), V( 6) },
-      { V(31),  V(  30), V(  99), V(39), V(19) },
-      { V(23),  V(  29), V(  96), V(41), V(15) },
-      { V(21),  V(  23), V( 116), V(41), V(15) } },
-    { { V( 0),  V(   0), V(  79), V(23), V( 1) },
+    { { V( 0),  V(   0), V(  79), V(23), V( 1) },  //BlockedByPawn
       { V( 0),  V(   0), V( 148), V(27), V( 2) },
       { V( 0),  V(   0), V( 161), V(16), V( 1) },
       { V( 0),  V(   0), V( 171), V(22), V(15) } },
-    { { V( 0),  V(-290), V(-274), V(57), V(41) },
-      { V( 0),  V(  60), V( 144), V(39), V(13) },
-      { V( 0),  V(  65), V( 141), V(41), V(34) },
-      { V( 0),  V(  53), V( 127), V(56), V(14) } }
-
+    { { V(22),  V(  45), V( 104), V(62), V( 6) },  //Unblocked
+      { V(31),  V(  30), V(  99), V(39), V(19) },
+      { V(23),  V(  29), V(  96), V(41), V(15) },
+      { V(21),  V(  23), V( 116), V(41), V(15) } }
   };
 
   // Max bonus for king safety. Corresponds to start position with all the pawns
@@ -262,8 +284,9 @@ namespace {
     const Square Left  = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
     Bitboard b, neighbours, stoppers, doubled, supported, phalanx;
+    Bitboard lever, leverPush, connected;
     Square s;
-    bool opposed, lever, connected, backward;
+    bool opposed, backward;
     Score score = SCORE_ZERO;
     const Square* pl = pos.squares<PAWN>(Us);
     const Bitboard* pawnAttacksBB = StepAttacksBB[make_piece(Us, PAWN)];
@@ -292,9 +315,15 @@ namespace {
         opposed    = theirPawns & forward_bb(Us, s);
         stoppers   = theirPawns & passed_pawn_mask(Us, s);
         lever      = theirPawns & pawnAttacksBB[s];
+        leverPush  = theirPawns & pawnAttacksBB[s + Up];
         doubled    = ourPawns   & (s + Up);
         neighbours = ourPawns   & adjacent_files_bb(f);
         phalanx    = neighbours & rank_bb(s);
+#ifdef HORDE
+        if (pos.is_horde() && rank_of(s) == RANK_1)
+            supported = false;
+        else
+#endif
         supported  = neighbours & rank_bb(s - Up);
         connected  = supported | phalanx;
 
@@ -316,8 +345,13 @@ namespace {
         }
 
         // Passed pawns will be properly scored in evaluation because we need
-        // full attack info to evaluate them.
-        if (!stoppers && !(ourPawns & forward_bb(Us, s)))
+        // full attack info to evaluate them. Include also not passed pawns
+        // which could become passed after one or two pawn pushes when are
+        // not attacked more times than defended.
+        if (   !(stoppers ^ lever ^ leverPush)
+            && !(ourPawns & forward_bb(Us, s))
+            && popcount(supported) >= popcount(lever)
+            && popcount(phalanx)   >= popcount(leverPush))
             e->passedPawns[Us] |= s;
 
         // Score this pawn
@@ -330,6 +364,9 @@ namespace {
         else if (!supported)
             score -= Unsupported[pos.variant()];
 
+#ifdef HORDE
+        if (pos.is_horde() && relative_rank(Us, s) == 0) {} else
+#endif
         if (connected)
             score += Connected[opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
 
@@ -389,14 +426,14 @@ Entry* probe(const Position& pos) {
 
 
 /// Entry::shelter_storm() calculates shelter and storm penalties for the file
-/// the king is on, as well as the two adjacent files.
+/// the king is on, as well as the two closest files.
 
 template<Color Us>
 Value Entry::shelter_storm(const Position& pos, Square ksq) {
 
   const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-  enum { NoFriendlyPawn, Unblocked, BlockedByPawn, BlockedByKing };
+  enum { BlockedByKing, Unopposed, BlockedByPawn, Unblocked };
 
   Bitboard b = pos.pieces(PAWN) & (in_front_bb(Us, rank_of(ksq)) | rank_bb(ksq));
   Bitboard ourPawns = b & pos.pieces(Us);
@@ -415,7 +452,7 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
       safety -=  ShelterWeakness[pos.variant()][std::min(f, FILE_H - f)][rkUs]
                + StormDanger
                  [f == file_of(ksq) && rkThem == relative_rank(Us, ksq) + 1 ? BlockedByKing  :
-                  rkUs   == RANK_1                                          ? NoFriendlyPawn :
+                  rkUs   == RANK_1                                          ? Unopposed :
                   rkThem == rkUs + 1                                        ? BlockedByPawn  : Unblocked]
                  [std::min(f, FILE_H - f)][rkThem];
   }

@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -180,6 +180,13 @@ namespace {
             b2 = shift<Up>(b1 & (TRank2BB | TRank3BB)) & emptySquares;
 #endif
 
+#ifdef LOSERS
+        if (pos.is_losers())
+        {
+            b1 &= target;
+            b2 &= target;
+        }
+#endif
         if (Type == EVASIONS) // Consider only blocking squares
         {
             b1 &= target;
@@ -209,7 +216,7 @@ namespace {
         }
 #ifdef CRAZYHOUSE
         // Do not require drops to be check (unless already required by target)
-        if (pos.is_house())
+        if (pos.is_house() && pos.count_in_hand(Us, PAWN))
         {
             Bitboard b = (Type == EVASIONS ? emptySquares & target : emptySquares) & ~(Rank1BB | Rank8BB);
             moveList = generate_drops<Us, PAWN, false>(pos, moveList, b);
@@ -243,6 +250,10 @@ namespace {
         }
 #ifdef ANTI
         if (pos.is_anti())
+            emptySquares &= target;
+#endif
+#ifdef LOSERS
+        if (pos.is_losers())
             emptySquares &= target;
 #endif
 
@@ -372,7 +383,7 @@ namespace {
 
     moveList = generate_pawn_moves<Us, Type>(pos, moveList, target);
 #ifdef CRAZYHOUSE
-    if (pos.is_house() && Type != CAPTURES)
+    if (pos.is_house() && Type != CAPTURES && (pos.count_in_hand(Us, ALL_PIECES) - pos.count_in_hand(Us, PAWN)))
     {
         Bitboard b = Type == EVASIONS ? target ^ pos.checkers() :
                      Type == NON_EVASIONS ? target ^ pos.pieces(~Us) : target;
@@ -398,7 +409,11 @@ namespace {
             while (b)
                 *moveList++ = make_move(ksq, pop_lsb(&b));
         }
+#ifdef SUICIDE
+        if (pos.is_suicide() || pos.can_capture())
+#else
         if (pos.can_capture())
+#endif
             return moveList;
     }
     else
@@ -423,6 +438,10 @@ namespace {
             *moveList++ = make_move(ksq, pop_lsb(&b));
     }
 
+#ifdef LOSERS
+    if (pos.is_losers() && pos.can_capture_losers())
+        return moveList;
+#endif
     if (Type != CAPTURES && Type != EVASIONS && pos.can_castle(Us))
     {
         if (pos.is_chess960())
@@ -470,6 +489,10 @@ ExtMove* generate(const Position& pos, ExtMove* moveList) {
 #ifdef ATOMIC
   if (pos.is_atomic() && Type == CAPTURES)
       target &= ~pos.attacks_from<KING>(pos.square<KING>(us));
+#endif
+#ifdef LOSERS
+  if (pos.is_losers() && pos.can_capture_losers())
+      target &= pos.pieces(~us);
 #endif
 
   return us == WHITE ? generate_all<WHITE, Type>(pos, moveList, target)
@@ -572,6 +595,10 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   else
 #endif
   b = pos.attacks_from<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
+#ifdef LOSERS
+  if (pos.is_losers() && pos.can_capture_losers())
+      b &= pos.pieces(~us);
+#endif
   while (b)
       *moveList++ = make_move(ksq, pop_lsb(&b));
 
@@ -587,6 +614,10 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   else
 #endif
   target = between_bb(checksq, ksq) | checksq;
+#ifdef LOSERS
+  if (pos.is_losers() && pos.can_capture_losers())
+      target &= pos.pieces(~us);
+#endif
 
   return us == WHITE ? generate_all<WHITE, EVASIONS>(pos, moveList, target)
                      : generate_all<BLACK, EVASIONS>(pos, moveList, target);
@@ -597,30 +628,9 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 
 template<>
 ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moveList) {
-#ifdef ATOMIC
-  if (pos.is_atomic() && (pos.is_atomic_win() || pos.is_atomic_loss()))
+  // Return immediately at end of variant
+  if (pos.is_variant_end())
       return moveList;
-#endif
-#ifdef HORDE
-  if (pos.is_horde() && pos.is_horde_loss())
-      return moveList;
-#endif
-#ifdef KOTH
-  if (pos.is_koth() && (pos.is_koth_win() || pos.is_koth_loss()))
-      return moveList;
-#endif
-#ifdef RACE
-  if (pos.is_race() && (pos.is_race_draw() || pos.is_race_win() || pos.is_race_loss()))
-      return moveList;
-#endif
-#ifdef THREECHECK
-  if (pos.is_three_check() && (pos.is_three_check_win() || pos.is_three_check_loss()))
-      return moveList;
-#endif
-#ifdef ANTI
-  if (pos.is_anti() && (pos.is_anti_win() || pos.is_anti_loss()))
-      return moveList;
-#endif
 
   Bitboard pinned = pos.pinned_pieces(pos.side_to_move());
   bool validate = pinned;

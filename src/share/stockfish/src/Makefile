@@ -155,9 +155,11 @@ ifeq ($(COMP),gcc)
 	ifeq ($(ARCH),armv7)
 		ifeq ($(OS),Android)
 			CXXFLAGS += -m$(bits)
+		        LDFLAGS += -m$(bits)
 		endif
 	else
 		CXXFLAGS += -m$(bits)
+		LDFLAGS += -m$(bits)
 	endif
 
 	ifneq ($(KERNEL),Darwin)
@@ -252,7 +254,22 @@ ifneq ($(comp),mingw)
 endif
 
 ### 3.2.1 Debugging
-CXXFLAGS += -DANTI -DATOMIC -DCRAZYHOUSE -DHORDE -DKOTH -DRACE -DTHREECHECK
+CXXFLAGS += -DANTI -DATOMIC -DBUGHOUSE -DCRAZYHOUSE -DHORDE -DKOTH -DLOOP -DLOSERS -DRACE -DSKILL -DSUICIDE -DTHREECHECK -DUSELONGESTPV
+ifneq (,$(filter -DBUGHOUSE,$(CXXFLAGS)))
+ifeq (,$(filter -DCRAZYHOUSE,$(CXXFLAGS)))
+$(error Crazyhouse (-DCRAZYHOUSE) is required for subvariant bughouse chess)
+endif
+endif
+ifneq (,$(filter -DLOOP,$(CXXFLAGS)))
+ifeq (,$(filter -DCRAZYHOUSE,$(CXXFLAGS)))
+$(error Crazyhouse (-DCRAZYHOUSE) is required for subvariant loop chess)
+endif
+endif
+ifneq (,$(filter -DSUICIDE,$(CXXFLAGS)))
+ifeq (,$(filter -DANTI,$(CXXFLAGS)))
+$(error Giveaway (-DANTI) is required for subvariant suicide chess)
+endif
+endif
 ifeq ($(debug),no)
 	CXXFLAGS += -DNDEBUG
 else
