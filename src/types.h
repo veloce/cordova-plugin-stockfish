@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -110,6 +110,7 @@ const int MAX_MOVES = 256;
 const int MAX_PLY   = 128;
 
 enum Variant {
+  //main variants
   CHESS_VARIANT,
 #ifdef ANTI
   ANTI_VARIANT,
@@ -126,6 +127,9 @@ enum Variant {
 #ifdef KOTH
   KOTH_VARIANT,
 #endif
+#ifdef LOSERS
+  LOSERS_VARIANT,
+#endif
 #ifdef RACE
   RACE_VARIANT,
 #endif
@@ -135,34 +139,61 @@ enum Variant {
 #ifdef THREECHECK
   THREECHECK_VARIANT,
 #endif
-  VARIANT_NB
+  VARIANT_NB,
+  LAST_VARIANT = VARIANT_NB - 1,
+  //subvariants
+#ifdef SUICIDE
+  SUICIDE_VARIANT,
+#endif
+#ifdef BUGHOUSE
+  BUGHOUSE_VARIANT,
+#endif
+#ifdef LOOP
+  LOOP_VARIANT,
+#endif
+  SUBVARIANT_NB,
 };
 
 //static const constexpr char* variants[] doesn't play nicely with uci.h
-static std::vector<std::string> variants = {"chess"
+static std::vector<std::string> variants = {
+//main variants
+"chess",
 #ifdef ANTI
-,"giveaway"
+"giveaway",
 #endif
 #ifdef ATOMIC
-,"atomic"
+"atomic",
 #endif
 #ifdef CRAZYHOUSE
-,"crazyhouse"
+"crazyhouse",
 #endif
 #ifdef HORDE
-,"horde"
+"horde",
 #endif
 #ifdef KOTH
-,"kingofthehill"
+"kingofthehill",
+#endif
+#ifdef LOSERS
+"losers",
 #endif
 #ifdef RACE
-,"racingkings"
+"racingkings",
 #endif
 #ifdef RELAY
-,"relay"
+"relay",
 #endif
 #ifdef THREECHECK
-,"threecheck"
+"threecheck",
+#endif
+//subvariants
+#ifdef SUICIDE
+"suicide",
+#endif
+#ifdef BUGHOUSE
+"bughouse",
+#endif
+#ifdef LOOP
+"loop",
 #endif
 };
 
@@ -187,9 +218,16 @@ enum MoveType {
   NORMAL,
   PROMOTION = 1 << 14,
   ENPASSANT = 2 << 14,
-  CASTLING  = 3 << 14
+  CASTLING  = 3 << 14,
+  // special moves use promotion piece type bits as flags
+#if defined(ANTI) || defined(CRAZYHOUSE)
+  SPECIAL = ENPASSANT,
+#endif
 #ifdef CRAZYHOUSE
-  ,DROP = 1 << 17
+  DROP = 1 << 12,
+#endif
+#ifdef ANTI
+  KING_PROMOTION = 2 << 12, // not used as an actual move type
 #endif
 };
 
@@ -222,7 +260,7 @@ enum CheckCount {
   CHECKS_0 = 0, CHECKS_1 = 1, CHECKS_2 = 2, CHECKS_3 = 3, CHECKS_NB = 4
 };
 
-const CheckCount Checks[] = { CHECKS_0, CHECKS_1, CHECKS_2, CHECKS_3 };
+const CheckCount CheckCounts[] = { CHECKS_0, CHECKS_1, CHECKS_2, CHECKS_3 };
 #endif
 
 enum Phase {
@@ -257,31 +295,27 @@ enum Value : int {
   VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - 2 * MAX_PLY,
   VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + 2 * MAX_PLY,
 
-  TempoMg       = 0,     TempoEg       = 0,
   PawnValueMg   = 188,   PawnValueEg   = 248,
   KnightValueMg = 753,   KnightValueEg = 832,
-  BishopValueMg = 826,   BishopValueEg = 897,
+  BishopValueMg = 814,   BishopValueEg = 890,
   RookValueMg   = 1285,  RookValueEg   = 1371,
-  QueenValueMg  = 2513,  QueenValueEg  = 2650,
+  QueenValueMg  = 2513,  QueenValueEg  = 2648,
 #ifdef ANTI
-  TempoMgAnti       = 0,     TempoEgAnti       = 0,
   PawnValueMgAnti   = -137,  PawnValueEgAnti   = -360,
-  KnightValueMgAnti = -130,  KnightValueEgAnti = -41,
-  BishopValueMgAnti = -322,  BishopValueEgAnti = -64,
-  RookValueMgAnti   = -496,  RookValueEgAnti   =  62,
+  KnightValueMgAnti = -130,  KnightValueEgAnti = 41,
+  BishopValueMgAnti = -322,  BishopValueEgAnti = 64,
+  RookValueMgAnti   = -496,  RookValueEgAnti   = 82,
   QueenValueMgAnti  = -187,  QueenValueEgAnti  = -318,
-  KingValueMgAnti   = -20,   KingValueEgAnti   =  130,
+  KingValueMgAnti   = -20,   KingValueEgAnti   = 130,
 #endif
 #ifdef ATOMIC
-  TempoMgAtomic       = 0,     TempoEgAtomic       = 0,
-  PawnValueMgAtomic   = 332,   PawnValueEgAtomic   = 438,
-  KnightValueMgAtomic = 478,   KnightValueEgAtomic = 736,
-  BishopValueMgAtomic = 614,   BishopValueEgAtomic = 823,
-  RookValueMgAtomic   = 957,   RookValueEgAtomic   = 1278,
-  QueenValueMgAtomic  = 1904,  QueenValueEgAtomic  = 2918,
+  PawnValueMgAtomic   = 329,   PawnValueEgAtomic   = 437,
+  KnightValueMgAtomic = 476,   KnightValueEgAtomic = 732,
+  BishopValueMgAtomic = 622,   BishopValueEgAtomic = 774,
+  RookValueMgAtomic   = 921,   RookValueEgAtomic   = 1155,
+  QueenValueMgAtomic  = 1812,  QueenValueEgAtomic  = 2636,
 #endif
 #ifdef CRAZYHOUSE
-  TempoMgHouse       = 0,     TempoEgHouse       = 0,
   PawnValueMgHouse   = 174,   PawnValueEgHouse   = 259,
   KnightValueMgHouse = 445,   KnightValueEgHouse = 667,
   BishopValueMgHouse = 513,   BishopValueEgHouse = 690,
@@ -289,31 +323,34 @@ enum Value : int {
   QueenValueMgHouse  = 936,   QueenValueEgHouse  = 1222,
 #endif
 #ifdef HORDE
-  TempoMgHorde       = 0,     TempoEgHorde       = 0,
-  PawnValueMgHorde   = 370,   PawnValueEgHorde   = 427,
-  KnightValueMgHorde = 708,   KnightValueEgHorde = 851,
-  BishopValueMgHorde = 736,   BishopValueEgHorde = 859,
-  RookValueMgHorde   = 1341,  RookValueEgHorde   = 1175,
-  QueenValueMgHorde  = 2777,  QueenValueEgHorde  = 3182,
-  KingValueMgHorde   = 2041,  KingValueEgHorde   = 975,
+  PawnValueMgHorde   = 317,   PawnValueEgHorde   = 316,
+  KnightValueMgHorde = 885,   KnightValueEgHorde = 985,
+  BishopValueMgHorde = 745,   BishopValueEgHorde = 964,
+  RookValueMgHorde   = 1060,  RookValueEgHorde   = 1187,
+  QueenValueMgHorde  = 3107,  QueenValueEgHorde  = 3266,
+  KingValueMgHorde   = 2296,  KingValueEgHorde   = 995,
 #endif
 #ifdef KOTH
-  TempoMgHill       = 1,     TempoEgHill       = 1,
   PawnValueMgHill   = 178,   PawnValueEgHill   = 252,
   KnightValueMgHill = 734,   KnightValueEgHill = 818,
   BishopValueMgHill = 859,   BishopValueEgHill = 883,
   RookValueMgHill   = 1159,  RookValueEgHill   = 1289,
   QueenValueMgHill  = 2396,  QueenValueEgHill  = 2610,
 #endif
+#ifdef LOSERS
+  PawnValueMgLosers   = -41,   PawnValueEgLosers   = -23,
+  KnightValueMgLosers = -22,   KnightValueEgLosers = 329,
+  BishopValueMgLosers = -219,  BishopValueEgLosers = 231,
+  RookValueMgLosers   = -457,  RookValueEgLosers   = 77,
+  QueenValueMgLosers  = -122,  QueenValueEgLosers  = -213,
+#endif
 #ifdef RACE
-  TempoMgRace       = 0,     TempoEgRace       = 0,
-  KnightValueMgRace = 720,   KnightValueEgRace = 801,
-  BishopValueMgRace = 904,   BishopValueEgRace = 929,
-  RookValueMgRace   = 1265,  RookValueEgRace  = 1731,
-  QueenValueMgRace  = 2198,  QueenValueEgRace = 2226,
+  KnightValueMgRace = 730,   KnightValueEgRace = 839,
+  BishopValueMgRace = 1006,  BishopValueEgRace = 1019,
+  RookValueMgRace   = 1274,  RookValueEgRace   = 1842,
+  QueenValueMgRace  = 2019,  QueenValueEgRace  = 2090,
 #endif
 #ifdef THREECHECK
-  TempoMgThreeCheck       = 0,     TempoEgThreeCheck       = 0,
   PawnValueMgThreeCheck   = 181,   PawnValueEgThreeCheck   = 245,
   KnightValueMgThreeCheck = 691,   KnightValueEgThreeCheck = 850,
   BishopValueMgThreeCheck = 829,   BishopValueEgThreeCheck = 845,
@@ -323,7 +360,7 @@ enum Value : int {
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
-extern Value TempoValue[VARIANT_NB][PHASE_NB];
+extern Value PhaseLimit[VARIANT_NB][PHASE_NB];
 
 enum PieceType {
   NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
@@ -418,19 +455,19 @@ inline Value mg_value(Score s) {
 #define ENABLE_BASE_OPERATORS_ON(T)                             \
 inline T operator+(T d1, T d2) { return T(int(d1) + int(d2)); } \
 inline T operator-(T d1, T d2) { return T(int(d1) - int(d2)); } \
-inline T operator*(int i, T d) { return T(i * int(d)); }        \
-inline T operator*(T d, int i) { return T(int(d) * i); }        \
 inline T operator-(T d) { return T(-int(d)); }                  \
 inline T& operator+=(T& d1, T d2) { return d1 = d1 + d2; }      \
 inline T& operator-=(T& d1, T d2) { return d1 = d1 - d2; }      \
-inline T& operator*=(T& d, int i) { return d = T(int(d) * i); }
 
 #define ENABLE_FULL_OPERATORS_ON(T)                             \
 ENABLE_BASE_OPERATORS_ON(T)                                     \
+inline T operator*(int i, T d) { return T(i * int(d)); }        \
+inline T operator*(T d, int i) { return T(int(d) * i); }        \
 inline T& operator++(T& d) { return d = T(int(d) + 1); }        \
 inline T& operator--(T& d) { return d = T(int(d) - 1); }        \
 inline T operator/(T d, int i) { return T(int(d) / i); }        \
 inline int operator/(T d1, T d2) { return int(d1) / int(d2); }  \
+inline T& operator*=(T& d, int i) { return d = T(int(d) * i); } \
 inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
 
 ENABLE_FULL_OPERATORS_ON(Variant)
@@ -464,6 +501,17 @@ inline Score operator*(Score s1, Score s2);
 /// Division of a Score must be handled separately for each term
 inline Score operator/(Score s, int i) {
   return make_score(mg_value(s) / i, eg_value(s) / i);
+}
+
+/// Multiplication of a Score by an integer. We check for overflow in debug mode.
+inline Score operator*(Score s, int i) {
+  Score result = Score(int(s) * i);
+
+  assert(eg_value(result) == (i * eg_value(s)));
+  assert(mg_value(result) == (i * mg_value(s)));
+  assert((i == 0) || (result / i) == s );
+
+  return result;
 }
 
 inline Color operator~(Color c) {
@@ -540,9 +588,11 @@ inline Square pawn_push(Color c) {
   return c == WHITE ? NORTH : SOUTH;
 }
 
+inline MoveType type_of(Move m);
+
 inline Square from_sq(Move m) {
 #ifdef CRAZYHOUSE
-  if (m & DROP)
+  if (type_of(m) == DROP)
       return SQ_NONE;
 #endif
   return Square((m >> 6) & 0x3F);
@@ -553,16 +603,25 @@ inline Square to_sq(Move m) {
 }
 
 inline MoveType type_of(Move m) {
+#if defined(ANTI) || defined(CRAZYHOUSE)
+  if ((m & (3 << 14)) == SPECIAL && (m & (3 << 12)))
+  {
 #ifdef CRAZYHOUSE
-  if (m & DROP)
-      return DROP;
+      if ((m & (3 << 12)) == DROP)
+          return DROP;
+#endif
+#ifdef ANTI
+      if ((m & (3 << 12)) == KING_PROMOTION)
+          return PROMOTION;
+#endif
+  }
 #endif
   return MoveType(m & (3 << 14));
 }
 
 inline PieceType promotion_type(Move m) {
 #ifdef ANTI
-  if ((m >> 16) & 1)
+  if ((m & (3 << 12)) == KING_PROMOTION && (m & (3 << 14)) == SPECIAL)
       return KING;
 #endif
   return PieceType(((m >> 12) & 3) + KNIGHT);
@@ -576,23 +635,46 @@ template<MoveType T>
 inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
 #ifdef ANTI
   if (pt == KING)
-      return Move((1 << 16) | (T + (from << 6) + to));
+      return Move(SPECIAL + KING_PROMOTION + (from << 6) + to);
 #endif
   return Move(T + ((pt - KNIGHT) << 12) + (from << 6) + to);
 }
 
 #ifdef CRAZYHOUSE
 inline Move make_drop(Square to, Piece pc) {
-  return Move(DROP + (pc << 18) + to);
+  return Move(SPECIAL + DROP + (pc << 6) + to);
 }
 
 inline Piece dropped_piece(Move m) {
-  return Piece((m >> 18) & 15);
+  return Piece((m >> 6) & 15);
 }
 #endif
 
 inline bool is_ok(Move m) {
   return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
+}
+
+inline Variant main_variant(Variant v) {
+  if (v < VARIANT_NB)
+      return v;
+  switch(v)
+  {
+#ifdef SUICIDE
+  case SUICIDE_VARIANT:
+      return ANTI_VARIANT;
+#endif
+#ifdef BUGHOUSE
+  case BUGHOUSE_VARIANT:
+      return CRAZYHOUSE_VARIANT;
+#endif
+#ifdef LOOP
+  case LOOP_VARIANT:
+      return CRAZYHOUSE_VARIANT;
+#endif
+  default:
+      assert(false);
+      return CHESS_VARIANT; // Silence a warning
+  }
 }
 
 #endif // #ifndef TYPES_H_INCLUDED
