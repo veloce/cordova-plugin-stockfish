@@ -21,7 +21,7 @@ namespace stockfishios
   auto readstdout = [](void *stockfish) {
     std::streambuf* out = std::cout.rdbuf();
 
-    threadbuf lichbuf(8, 1024);
+    threadbuf lichbuf(8, 8096);
     std::ostream lichout(&lichbuf);
     std::cout.rdbuf(lichout.rdbuf());
     std::istream lichin(&lichbuf);
