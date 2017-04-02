@@ -102,6 +102,7 @@ public:
   Square ep_square() const;
   bool empty(Square s) const;
   template<PieceType Pt> int count(Color c) const;
+  template<PieceType Pt> int count() const;
   template<PieceType Pt> const Square* squares(Color c) const;
   template<PieceType Pt> Square square(Color c) const;
 
@@ -185,6 +186,7 @@ public:
 #endif
 #ifdef CRAZYHOUSE
   bool is_house() const;
+  template<PieceType Pt> int count_in_hand(Color c) const;
   int count_in_hand(Color c, PieceType pt) const;
   void add_to_hand(Color c, PieceType pt);
   void remove_from_hand(Color c, PieceType pt);
@@ -241,6 +243,7 @@ public:
   int rule50_count() const;
   Score psq_score() const;
   Value non_pawn_material(Color c) const;
+  Value non_pawn_material() const;
 
   // Position consistency check, for debugging
   bool pos_is_ok(int* failedStep = nullptr) const;
@@ -341,6 +344,10 @@ template<PieceType Pt> inline int Position::count(Color c) const {
   return pieceCount[make_piece(c, Pt)];
 }
 
+template<PieceType Pt> inline int Position::count() const {
+  return pieceCount[make_piece(WHITE, Pt)] + pieceCount[make_piece(BLACK, Pt)];
+}
+
 template<PieceType Pt> inline const Square* Position::squares(Color c) const {
   return pieceList[make_piece(c, Pt)];
 }
@@ -358,6 +365,9 @@ template<PieceType Pt> inline Square Position::square(Color c) const {
   // There may be zero, one, or multiple kings
   if (is_anti() && pieceCount[make_piece(c, Pt)] == 0)
       return SQ_NONE;
+  if (is_anti())
+      assert(pieceCount[make_piece(c, Pt)] >= 1);
+  else
 #endif
   assert(pieceCount[make_piece(c, Pt)] == 1);
   return pieceList[make_piece(c, Pt)][0];
@@ -432,6 +442,9 @@ inline Bitboard Position::attackers_to(Square s) const {
 }
 
 inline Bitboard Position::checkers() const {
+#ifdef ANTI
+  assert(!is_anti() || !st->checkersBB);
+#endif
   return st->checkersBB;
 }
 
@@ -460,11 +473,6 @@ inline bool Position::pawn_passed(Color c, Square s) const {
 }
 
 inline bool Position::advanced_pawn_push(Move m) const {
-#ifdef RACE
-  if (is_race())
-    return   type_of(moved_piece(m)) == KING
-          && rank_of(from_sq(m)) > RANK_4;
-#endif
   return   type_of(moved_piece(m)) == PAWN
         && relative_rank(sideToMove, from_sq(m)) > RANK_4;
 }
@@ -487,6 +495,10 @@ inline Score Position::psq_score() const {
 
 inline Value Position::non_pawn_material(Color c) const {
   return st->nonPawnMaterial[c];
+}
+
+inline Value Position::non_pawn_material() const {
+  return st->nonPawnMaterial[WHITE] + st->nonPawnMaterial[BLACK];
 }
 
 inline int Position::game_ply() const {
@@ -626,6 +638,9 @@ inline bool Position::is_house() const {
   return var == CRAZYHOUSE_VARIANT;
 }
 
+template<PieceType Pt> inline int Position::count_in_hand(Color c) const {
+  return pieceCountInHand[c][Pt];
+}
 inline int Position::count_in_hand(Color c, PieceType pt) const {
   return pieceCountInHand[c][pt];
 }
@@ -829,12 +844,6 @@ inline Value Position::variant_result(int ply, Value draw_value) const {
 }
 
 inline Value Position::checkmate_value(int ply) const {
-#ifdef ANTI
-  assert(!is_anti());
-#endif
-#ifdef RACE
-  assert(!is_race());
-#endif
 #ifdef LOSERS
   if (is_losers())
       return mate_in(ply);

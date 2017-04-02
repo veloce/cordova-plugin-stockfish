@@ -38,7 +38,7 @@ namespace {
     { S(50, 80), S(54, 69) },
 #endif
 #ifdef ATOMIC
-    { S(25, 27), S(27, 18) },
+    { S(27, 28), S(24, 14) },
 #endif
 #ifdef CRAZYHOUSE
     { S(45, 40), S(30, 27) },
@@ -70,7 +70,7 @@ namespace {
     { S(64, 25), S(26, 50) },
 #endif
 #ifdef ATOMIC
-    { S(41, 25), S(41, 13) },
+    { S(48, 21), S(35, 15) },
 #endif
 #ifdef CRAZYHOUSE
     { S(56, 33), S(41, 19) },
@@ -102,7 +102,7 @@ namespace {
     S(-45, -48),
 #endif
 #ifdef ATOMIC
-    S( 45,   0),
+    S( 39,   0),
 #endif
 #ifdef CRAZYHOUSE
     S( 17,   8),
@@ -128,7 +128,7 @@ namespace {
   };
 
   // Connected pawn bonus by opposed, phalanx, twice supported and rank
-  Score Connected[2][2][2][RANK_NB];
+  Score Connected[VARIANT_NB][2][2][2][RANK_NB];
 
   // Doubled pawn penalty
   const Score Doubled[VARIANT_NB] = {
@@ -137,7 +137,7 @@ namespace {
     S( 4, 51),
 #endif
 #ifdef ATOMIC
-    S( 5, 42),
+    S( 0,  0),
 #endif
 #ifdef CRAZYHOUSE
     S(18, 38),
@@ -178,19 +178,14 @@ namespace {
     { V( 75), V(12), V(43), V(59), V(90), V( 84), V(112) }
   },
 #ifdef ANTI
-  {
-    { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98) },
-    { V(116), V( 4), V(28), V(87), V(94), V(108), V(104) },
-    { V(109), V( 1), V(59), V(87), V(62), V( 91), V(116) },
-    { V( 75), V(12), V(43), V(59), V(90), V( 84), V(112) }
-  },
+  {},
 #endif
 #ifdef ATOMIC
   {
-    { V(100), V(50), V(10), V(46), V(82), V( 86), V( 98) },
-    { V(116), V(50), V(10), V(87), V(94), V(108), V(104) },
-    { V(109), V(50), V(10), V(87), V(62), V( 91), V(116) },
-    { V( 75), V(50), V(10), V(59), V(90), V( 84), V(112) }
+    { V( 88), V(34), V( 5), V(44), V( 89), V( 90), V( 94) },
+    { V(116), V(61), V(-4), V(80), V( 95), V(101), V(104) },
+    { V( 97), V(68), V(34), V(82), V( 62), V(104), V(110) },
+    { V(103), V(44), V(44), V(77), V(103), V( 66), V(118) }
   },
 #endif
 #ifdef CRAZYHOUSE
@@ -238,10 +233,10 @@ namespace {
 #endif
 #ifdef THREECHECK
   {
-    { V(103), V( 0), V(21), V( 54), V(87), V( 89), V(100) },
-    { V(112), V( 3), V(54), V(105), V(85), V(105), V(100) },
-    { V(118), V(22), V(68), V( 93), V(60), V( 88), V(119) },
-    { V( 92), V(11), V(51), V( 66), V(93), V( 86), V(118) }
+    { V(105), V( 1), V(22), V( 52), V(86), V( 89), V( 98) },
+    { V(116), V( 3), V(55), V(109), V(81), V( 97), V( 99) },
+    { V(121), V(23), V(69), V( 93), V(58), V( 88), V(112) },
+    { V( 94), V(11), V(52), V( 67), V(90), V( 85), V(112) }
   },
 #endif
   };
@@ -368,7 +363,7 @@ namespace {
         if (pos.is_horde() && relative_rank(Us, s) == 0) {} else
 #endif
         if (connected)
-            score += Connected[opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
+            score += Connected[pos.variant()][opposed][!!phalanx][more_than_one(supported)][relative_rank(Us, s)];
 
         if (doubled)
             score -= Doubled[pos.variant()];
@@ -390,16 +385,46 @@ namespace Pawns {
 
 void init() {
 
-  static const int Seed[RANK_NB] = { 0, 8, 19, 13, 71, 94, 169, 324 };
+  static const int Seed[VARIANT_NB][RANK_NB] = {
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#ifdef ANTI
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef ATOMIC
+    { 0,18, 11, 14, 82,109, 170, 315 },
+#endif
+#ifdef CRAZYHOUSE
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef HORDE
+    { 36, 28, 3, 1, 115, 107, 321, 332 },
+#endif
+#ifdef KOTH
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef LOSERS
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef RACE
+    {},
+#endif
+#ifdef RELAY
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+#ifdef THREECHECK
+    { 0, 8, 19, 13, 71, 94, 169, 324 },
+#endif
+  };
 
+  for (Variant var = CHESS_VARIANT; var < VARIANT_NB; ++var)
   for (int opposed = 0; opposed <= 1; ++opposed)
       for (int phalanx = 0; phalanx <= 1; ++phalanx)
           for (int apex = 0; apex <= 1; ++apex)
               for (Rank r = RANK_2; r < RANK_8; ++r)
   {
-      int v = (Seed[r] + (phalanx ? (Seed[r + 1] - Seed[r]) / 2 : 0)) >> opposed;
+      int v = (Seed[var][r] + (phalanx ? (Seed[var][r + 1] - Seed[var][r]) / 2 : 0)) >> opposed;
       v += (apex ? v / 2 : 0);
-      Connected[opposed][phalanx][apex][r] = make_score(v, v * (r-2) / 4);
+      Connected[var][opposed][phalanx][apex][r] = make_score(v, v * (r-2) / 4);
   }
 }
 
@@ -449,12 +474,13 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
       b  = theirPawns & file_bb(f);
       Rank rkThem = b ? relative_rank(Us, frontmost_sq(Them, b)) : RANK_1;
 
-      safety -=  ShelterWeakness[pos.variant()][std::min(f, FILE_H - f)][rkUs]
+      int d = std::min(f, FILE_H - f);
+      safety -=  ShelterWeakness[pos.variant()][d][rkUs]
                + StormDanger
                  [f == file_of(ksq) && rkThem == relative_rank(Us, ksq) + 1 ? BlockedByKing  :
                   rkUs   == RANK_1                                          ? Unopposed :
                   rkThem == rkUs + 1                                        ? BlockedByPawn  : Unblocked]
-                 [std::min(f, FILE_H - f)][rkThem];
+                 [d][rkThem];
   }
 
   return safety;
