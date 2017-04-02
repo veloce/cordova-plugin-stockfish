@@ -463,7 +463,11 @@ void Position::set_castling_right(Color c, Square kfrom, Square rfrom) {
 void Position::set_check_info(StateInfo* si) const {
 
 #ifdef ANTI
-  if (is_anti()) si->blockersForKing[WHITE] = si->blockersForKing[BLACK] = 0;
+  if (is_anti())
+  {
+      si->blockersForKing[WHITE] = si->pinnersForKing[WHITE] = 0;
+      si->blockersForKing[BLACK] = si->pinnersForKing[BLACK] = 0;
+  }
   else
 #endif
   {
@@ -526,14 +530,6 @@ void Position::set_state(StateInfo* si) const {
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
   set_check_info(si);
-#ifdef RACE
-  if (is_race())
-  {
-      Rank r = rank_of(square<KING>(sideToMove));
-      si->checkersBB = r == RANK_8 ? 0 : Rank8BB & square<KING>(~sideToMove);
-  }
-  else
-#endif
 #ifdef HORDE
   if (is_horde() && is_horde_color(sideToMove))
       si->checkersBB = 0;
@@ -610,7 +606,7 @@ void Position::set_state(StateInfo* si) const {
 
 
 /// Position::set() is an overload to initialize the position object with
-/// the given endgame code string like "KBPvKN". It is mainly an helper to
+/// the given endgame code string like "KBPvKN". It is mainly a helper to
 /// get the material key out of an endgame code. Position is not playable,
 /// indeed is even not guaranteed to be legal.
 
@@ -1152,6 +1148,9 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   assert(is_ok(m));
   assert(&newSt != st);
+#ifdef ANTI
+  assert(!is_anti() || !givesCheck);
+#endif
 
   ++nodes;
   Key k = st->key ^ Zobrist::side;
@@ -1425,7 +1424,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       else
 #endif
       st->pawnKey ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
-      prefetch(thisThread->pawnsTable[st->pawnKey]);
+      prefetch2(thisThread->pawnsTable[st->pawnKey]);
 
       // Reset rule 50 draw counter
       st->rule50 = 0;
@@ -1449,20 +1448,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   // Update the key with the final value
   st->key = k;
 
-#ifdef ATOMIC
-  if (is_atomic() && captured && is_atomic_win())
-      givesCheck = false;
-#endif
-#ifdef RACE
-  if (is_race())
-      st->checkersBB = Rank8BB & square<KING>(us);
-  else
-#endif
-#ifdef ANTI
-  if (is_anti())
-      st->checkersBB = 0;
-  else
-#endif
   // Calculate checkers bitboard (if move gives check)
   st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
 
@@ -1756,7 +1741,7 @@ bool Position::see_ge(Move m, Value v) const {
 #endif
 
 #ifdef THREECHECK
-  if (is_three_check() && gives_check(m))
+  if (is_three_check() && color_of(moved_piece(m)) == sideToMove && gives_check(m))
       return true;
 #endif
 
@@ -1859,9 +1844,6 @@ bool Position::see_ge(Move m, Value v) const {
 
       // Don't allow pinned pieces to attack pieces except the king as long all
       // pinners are on their original square.
-#ifdef ANTI
-      if (is_anti()) {} else
-#endif
       if (!(st->pinnersForKing[stm] & ~occupied))
           stmAttackers &= ~st->blockersForKing[stm];
 
@@ -2072,6 +2054,7 @@ bool Position::pos_is_ok(int* failedStep) const {
       }
 
       if (step == Lists)
+      {
           for (Piece pc : Pieces)
           {
               if (pieceCount[pc] != popcount(pieces(color_of(pc), type_of(pc))))
@@ -2081,6 +2064,15 @@ bool Position::pos_is_ok(int* failedStep) const {
                   if (board[pieceList[pc][i]] != pc || index[pieceList[pc][i]] != i)
                       return false;
           }
+#ifdef CRAZYHOUSE
+          if (is_house()) {} else
+#endif
+#ifdef HORDE
+          if (is_horde()) {} else
+#endif
+          if (pieceCount[PAWN] > FILE_NB)
+              return false;
+      }
 
       if (step == Castling)
           for (Color c = WHITE; c <= BLACK; ++c)

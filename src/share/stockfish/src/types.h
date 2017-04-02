@@ -301,26 +301,26 @@ enum Value : int {
   RookValueMg   = 1285,  RookValueEg   = 1371,
   QueenValueMg  = 2513,  QueenValueEg  = 2648,
 #ifdef ANTI
-  PawnValueMgAnti   = -137,  PawnValueEgAnti   = -360,
-  KnightValueMgAnti = -130,  KnightValueEgAnti = 41,
-  BishopValueMgAnti = -322,  BishopValueEgAnti = 64,
-  RookValueMgAnti   = -496,  RookValueEgAnti   = 82,
-  QueenValueMgAnti  = -187,  QueenValueEgAnti  = -318,
-  KingValueMgAnti   = -20,   KingValueEgAnti   = 130,
+  PawnValueMgAnti   = -128,  PawnValueEgAnti   = -160,
+  KnightValueMgAnti = -161,  KnightValueEgAnti = 193,
+  BishopValueMgAnti = -351,  BishopValueEgAnti = 118,
+  RookValueMgAnti   = -541,  RookValueEgAnti   = 58,
+  QueenValueMgAnti  = -121,  QueenValueEgAnti  = -224,
+  KingValueMgAnti   = -23,   KingValueEgAnti   = 231,
 #endif
 #ifdef ATOMIC
-  PawnValueMgAtomic   = 329,   PawnValueEgAtomic   = 437,
-  KnightValueMgAtomic = 476,   KnightValueEgAtomic = 732,
-  BishopValueMgAtomic = 622,   BishopValueEgAtomic = 774,
-  RookValueMgAtomic   = 921,   RookValueEgAtomic   = 1155,
-  QueenValueMgAtomic  = 1812,  QueenValueEgAtomic  = 2636,
+  PawnValueMgAtomic   = 300,   PawnValueEgAtomic   = 437,
+  KnightValueMgAtomic = 474,   KnightValueEgAtomic = 755,
+  BishopValueMgAtomic = 652,   BishopValueEgAtomic = 762,
+  RookValueMgAtomic   = 899,   RookValueEgAtomic   = 1199,
+  QueenValueMgAtomic  = 1918,  QueenValueEgAtomic  = 2621,
 #endif
 #ifdef CRAZYHOUSE
-  PawnValueMgHouse   = 174,   PawnValueEgHouse   = 259,
-  KnightValueMgHouse = 445,   KnightValueEgHouse = 667,
-  BishopValueMgHouse = 513,   BishopValueEgHouse = 690,
-  RookValueMgHouse   = 699,   RookValueEgHouse   = 790,
-  QueenValueMgHouse  = 936,   QueenValueEgHouse  = 1222,
+  PawnValueMgHouse   = 157,   PawnValueEgHouse   = 246,
+  KnightValueMgHouse = 435,   KnightValueEgHouse = 621,
+  BishopValueMgHouse = 493,   BishopValueEgHouse = 611,
+  RookValueMgHouse   = 648,   RookValueEgHouse   = 783,
+  QueenValueMgHouse  = 866,   QueenValueEgHouse  = 1247,
 #endif
 #ifdef HORDE
   PawnValueMgHorde   = 317,   PawnValueEgHorde   = 316,
@@ -345,17 +345,17 @@ enum Value : int {
   QueenValueMgLosers  = -122,  QueenValueEgLosers  = -213,
 #endif
 #ifdef RACE
-  KnightValueMgRace = 730,   KnightValueEgRace = 839,
-  BishopValueMgRace = 1006,  BishopValueEgRace = 1019,
-  RookValueMgRace   = 1274,  RookValueEgRace   = 1842,
-  QueenValueMgRace  = 2019,  QueenValueEgRace  = 2090,
+  KnightValueMgRace = 789,   KnightValueEgRace = 887,
+  BishopValueMgRace = 1053,  BishopValueEgRace = 1115,
+  RookValueMgRace   = 1300,  RookValueEgRace   = 1824,
+  QueenValueMgRace  = 1848,  QueenValueEgRace  = 2141,
 #endif
 #ifdef THREECHECK
-  PawnValueMgThreeCheck   = 181,   PawnValueEgThreeCheck   = 245,
-  KnightValueMgThreeCheck = 691,   KnightValueEgThreeCheck = 850,
-  BishopValueMgThreeCheck = 829,   BishopValueEgThreeCheck = 845,
-  RookValueMgThreeCheck   = 1222,  RookValueEgThreeCheck   = 1386,
-  QueenValueMgThreeCheck  = 2274,  QueenValueEgThreeCheck  = 2573,
+  PawnValueMgThreeCheck   = 153,   PawnValueEgThreeCheck   = 220,
+  KnightValueMgThreeCheck = 638,   KnightValueEgThreeCheck = 811,
+  BishopValueMgThreeCheck = 690,   BishopValueEgThreeCheck = 849,
+  RookValueMgThreeCheck   = 1121,  RookValueEgThreeCheck   = 1438,
+  QueenValueMgThreeCheck  = 2214,  QueenValueEgThreeCheck  = 2342,
 #endif
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
@@ -587,6 +587,12 @@ inline bool opposite_colors(Square s1, Square s2) {
 inline Square pawn_push(Color c) {
   return c == WHITE ? NORTH : SOUTH;
 }
+
+#ifdef RACE
+inline Square horizontal_flip(Square s) {
+  return Square(s ^ SQ_H1); // Horizontal flip SQ_A1 -> SQ_H1
+}
+#endif
 
 inline MoveType type_of(Move m);
 

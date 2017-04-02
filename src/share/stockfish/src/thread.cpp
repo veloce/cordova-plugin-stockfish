@@ -27,10 +27,12 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
-void *trampoline(void *arg) {
-  ((Thread *) arg)->idle_loop();
+#ifndef _WIN32
+void* run_idle_loop(void* thread) {
+  static_cast<Thread*>(thread)->idle_loop();
   return nullptr;
 }
+#endif
 
 ThreadPool Threads; // Global object
 
@@ -38,9 +40,6 @@ ThreadPool Threads; // Global object
 /// in idle_loop().
 
 Thread::Thread() {
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setstacksize(&attr, 1048576);
 
   resetCalls = exit = false;
   maxPly = callsCnt = 0;
@@ -49,7 +48,16 @@ Thread::Thread() {
 
   std::unique_lock<Mutex> lk(mutex);
   searching = true;
-  pthread_create(&nativeThread, &attr, trampoline, this);
+#ifdef _WIN32
+  nativeThread = std::thread(&Thread::idle_loop, this);
+#else
+  // With increased MAX_MOVES the stack can grow larger than the system
+  // default. Explicitly set a sufficient stack size.
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setstacksize(&attr, 4096 * MAX_MOVES);
+  pthread_create(&nativeThread, &attr, run_idle_loop, this);
+#endif
   sleepCondition.wait(lk, [&]{ return !searching; });
 }
 
@@ -62,7 +70,11 @@ Thread::~Thread() {
   exit = true;
   sleepCondition.notify_one();
   mutex.unlock();
+#ifdef _WIN32
+  nativeThread.join();
+#else
   pthread_join(nativeThread, nullptr);
+#endif
 }
 
 
