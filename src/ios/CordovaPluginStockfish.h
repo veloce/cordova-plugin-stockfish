@@ -13,4 +13,6 @@
 
 - (void)sendOutput:(NSString *)output;
 
+- (void)onAppTerminate;
+
 @end

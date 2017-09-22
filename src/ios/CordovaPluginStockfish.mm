@@ -71,6 +71,15 @@ NSNumber *isInit = @FALSE;
   [self.commandDelegate sendPluginResult:pluginResult callbackId:outputCallback];
 }
 
+- (void)onAppTerminate
+{
+  if([isInit boolValue]) {
+    stockfishios::cmd("stop");
+    stockfishios::exit();
+    isInit = @FALSE;
+  }
+}
+
 void StockfishSendOutput (void *stockfish, const char *output)
 {
     [(__bridge id) stockfish sendOutput:[NSString stringWithUTF8String:output]];

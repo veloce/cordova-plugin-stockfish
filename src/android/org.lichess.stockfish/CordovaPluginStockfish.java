@@ -1,5 +1,11 @@
 package org.lichess.stockfish;
 
+import static java.util.concurrent.TimeUnit.*;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
@@ -10,10 +16,41 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
 
   private CallbackContext outputCallbackContext;
 
+  private final ScheduledExecutorService scheduler =
+    Executors.newScheduledThreadPool(1);
+
   private boolean isInit = false;
+  private ScheduledFuture<?> stopOnPauseHandle;
 
   static {
     System.loadLibrary("stockfishjni");
+  }
+
+  @Override
+  public void onDestroy() {
+    if(isInit) {
+      doExit();
+    }
+  }
+
+  @Override
+  public void onPause(boolean multitasking) {
+    if(isInit) {
+      stopOnPauseHandle = scheduler.schedule(new Runnable() {
+        public void run() {
+          jniCmd("stop");
+        }
+      }, 15, SECONDS);
+    }
+  }
+
+  @Override
+  public void onResume(boolean multitasking) {
+    if(isInit) {
+      if (stopOnPauseHandle != null) {
+        stopOnPauseHandle.cancel(false);
+      }
+    }
   }
 
   @Override
@@ -25,7 +62,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
     } else if (action.equals("output")) {
       output(callbackContext);
     } else if (action.equals("exit")) {
-      exit(callbackContext);
+      uiExit(callbackContext);
     } else {
       return false;
     }
@@ -65,14 +102,20 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
     callbackContext.sendPluginResult(pluginResult);
   }
 
-  private void exit(CallbackContext callbackContext) throws JSONException {
+  private void uiExit(CallbackContext callbackContext) throws JSONException {
+    if(isInit) {
+      doExit();
+      callbackContext.success();
+    } else {
+      callbackContext.error("Stockfish isn't currently running!");
+    }
+  }
+
+  private void doExit() {
     if(isInit) {
       jniCmd("stop");
       jniExit();
-      callbackContext.success();
       isInit = false;
-    } else {
-      callbackContext.error("Stockfish isn't currently running!");
     }
   }
 
