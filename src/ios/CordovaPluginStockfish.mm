@@ -14,12 +14,8 @@ NSNumber *isInit = @FALSE;
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         stockfishios::init((__bridge void*)self);
         isInit = @TRUE;
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-      } else {
-        NSString *error = @"Stockfish is already initialized";
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
       }
+      [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
   }];
 }
 

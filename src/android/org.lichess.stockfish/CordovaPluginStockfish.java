@@ -35,11 +35,9 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
   private void init(CallbackContext callbackContext) {
     if(!isInit) {
       jniInit();
-      callbackContext.success();
       isInit = true;
-    } else {
-      callbackContext.error("Stockfish is already initialized");
     }
+    callbackContext.success();
   }
 
   private void cmd(final JSONArray args, final CallbackContext callbackContext) throws JSONException {
