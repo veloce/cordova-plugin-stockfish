@@ -40,7 +40,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
         public void run() {
           jniCmd("stop");
         }
-      }, 15, SECONDS);
+      }, 60 * 10, SECONDS);
     }
   }
 
