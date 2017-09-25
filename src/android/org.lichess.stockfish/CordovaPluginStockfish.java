@@ -28,6 +28,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
 
   @Override
   public void onDestroy() {
+    super.onDestroy();
     if(isInit) {
       doExit();
     }
@@ -35,6 +36,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
 
   @Override
   public void onPause(boolean multitasking) {
+    super.onPause(multitasking);
     if(isInit) {
       stopOnPauseHandle = scheduler.schedule(new Runnable() {
         public void run() {
@@ -46,6 +48,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
 
   @Override
   public void onResume(boolean multitasking) {
+    super.onResume(multitasking);
     if(isInit) {
       if (stopOnPauseHandle != null) {
         stopOnPauseHandle.cancel(false);
