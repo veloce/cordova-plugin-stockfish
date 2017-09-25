@@ -11,10 +11,10 @@ NSNumber *isInit = @FALSE;
 {
   [self.commandDelegate runInBackground:^{
       if(![isInit boolValue]) {
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         stockfishios::init((__bridge void*)self);
         isInit = @TRUE;
       }
+      CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
       [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
   }];
 }
