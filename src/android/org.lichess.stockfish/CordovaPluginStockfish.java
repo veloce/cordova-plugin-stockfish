@@ -40,7 +40,9 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
     if(isInit) {
       stopOnPauseHandle = scheduler.schedule(new Runnable() {
         public void run() {
-          jniCmd("stop");
+          if (isInit) {
+            jniCmd("stop");
+          }
         }
       }, 60 * 10, SECONDS);
     }
