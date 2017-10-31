@@ -54,6 +54,6 @@ Through XCode, in the build settings menu:
   * Set `C++ Language Dialect` option to `C++11` value.
   * Set `C++ Standard Library` option to `lib++` value.
 
-To enable variants, in custom compiler flags, `Other C++ flags` section, add:
+To enable variants and skill, in custom compiler flags, `Other C++ flags` section, add:
 
-    -DKOTH -DTHREECHECK -DATOMIC -DHORDE -DRACE -DANTI -DCRAZYHOUSE
+    -DKOTH -DTHREECHECK -DATOMIC -DHORDE -DRACE -DANTI -DCRAZYHOUSE -DSKILL
