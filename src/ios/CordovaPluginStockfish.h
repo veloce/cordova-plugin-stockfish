@@ -11,8 +11,6 @@
 
 - (void)exit:(CDVInvokedUrlCommand*)command;
 
-- (void)sendOutput:(NSString *)output;
-
 - (void)onAppTerminate;
 
 @end
