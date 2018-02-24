@@ -69,6 +69,6 @@ namespace stockfishios
   void exit() {
     sync_cout << CMD_EXIT << sync_endl;
     reader.join();
-    Threads.main()->wait_for_search_finished();
+    Threads.exit();
   }
 }
