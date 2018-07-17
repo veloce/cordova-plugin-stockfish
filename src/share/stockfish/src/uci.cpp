@@ -241,13 +241,6 @@ namespace {
 
 } // namespace
 
-
-/// UCI::loop() waits for a command from stdin, parses it and calls the appropriate
-/// function. Also intercepts EOF from stdin to ensure gracefully exiting if the
-/// GUI dies unexpectedly. When called with some command line arguments, e.g. to
-/// run 'bench', once the command is executed the function returns immediately.
-/// In addition to the UCI ones, also some additional debug commands are supported.
-
 void UCI::command(std::string cmd) {
   static bool initialized = false;
   static Position pos;
@@ -255,9 +248,10 @@ void UCI::command(std::string cmd) {
   static std::shared_ptr<Thread> uiThread;
 
   if (!initialized) {
-    states.reset(new std::deque<StateInfo>(1));
-    uiThread = std::make_shared<Thread>(0);
-    pos.set(StartFENs[CHESS_VARIANT], false, CHESS_VARIANT, &states->back(), uiThread.get());
+      states.reset(new std::deque<StateInfo>(1));
+      uiThread = std::make_shared<Thread>(0);
+      pos.set(StartFENs[CHESS_VARIANT], false, CHESS_VARIANT, &states->back(), uiThread.get());
+      initialized = true;
   }
 
   string token;
@@ -266,37 +260,37 @@ void UCI::command(std::string cmd) {
   token.clear(); // getline() could return empty or blank line
   is >> skipws >> token;
 
-    // The GUI sends 'ponderhit' to tell us the user has played the expected move.
-    // So 'ponderhit' will be sent if we were told to ponder on the same move the
-    // user has played. We should continue searching but switch from pondering to
-    // normal search. In case Threads.stopOnPonderhit is set we are waiting for
-    // 'ponderhit' to stop the search, for instance if max search depth is reached.
-    if (    token == "quit"
-        ||  token == "stop"
-        || (token == "ponderhit" && Threads.stopOnPonderhit))
-        Threads.stop = true;
+  // The GUI sends 'ponderhit' to tell us the user has played the expected move.
+  // So 'ponderhit' will be sent if we were told to ponder on the same move the
+  // user has played. We should continue searching but switch from pondering to
+  // normal search. In case Threads.stopOnPonderhit is set we are waiting for
+  // 'ponderhit' to stop the search, for instance if max search depth is reached.
+  if (    token == "quit"
+      ||  token == "stop"
+      || (token == "ponderhit" && Threads.stopOnPonderhit))
+      Threads.stop = true;
 
-    else if (token == "ponderhit")
-        Threads.ponder = false; // Switch to normal search
+  else if (token == "ponderhit")
+      Threads.ponder = false; // Switch to normal search
 
-    else if (token == "uci")
-        sync_cout << "id name " << engine_info(true)
-                  << "\n"       << Options
-                  << "\nuciok"  << sync_endl;
+  else if (token == "uci")
+      sync_cout << "id name " << engine_info(true)
+                << "\n"       << Options
+                << "\nuciok"  << sync_endl;
 
-    else if (token == "setoption")  setoption(is);
-    else if (token == "go")         go(pos, is, states);
-    else if (token == "position")   position(pos, is, states);
-    else if (token == "ucinewgame") Search::clear();
-    else if (token == "isready")    sync_cout << "readyok" << sync_endl;
+  else if (token == "setoption")  setoption(is);
+  else if (token == "go")         go(pos, is, states);
+  else if (token == "position")   position(pos, is, states);
+  else if (token == "ucinewgame") Search::clear();
+  else if (token == "isready")    sync_cout << "readyok" << sync_endl;
 
-    // Additional custom non-UCI commands, mainly for debugging
-    else if (token == "flip")  pos.flip();
-    else if (token == "bench") bench(pos, is, states);
-    else if (token == "d")     sync_cout << pos << sync_endl;
-    else if (token == "eval")  sync_cout << Eval::trace(pos) << sync_endl;
-    else
-        sync_cout << "Unknown command: " << cmd << sync_endl;
+  // Additional custom non-UCI commands, mainly for debugging
+  else if (token == "flip")  pos.flip();
+  else if (token == "bench") bench(pos, is, states);
+  else if (token == "d")     sync_cout << pos << sync_endl;
+  else if (token == "eval")  sync_cout << Eval::trace(pos) << sync_endl;
+  else
+      sync_cout << "Unknown command: " << cmd << sync_endl;
 }
 
 
