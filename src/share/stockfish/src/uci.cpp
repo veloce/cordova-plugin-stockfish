@@ -250,9 +250,9 @@ namespace {
 
 void UCI::command(std::string cmd) {
   static bool initialized = false;
-  Position pos;
-  StateListPtr states;
-  std::shared_ptr<Thread> uiThread;
+  static Position pos;
+  static StateListPtr states;
+  static std::shared_ptr<Thread> uiThread;
 
   if (!initialized) {
     states.reset(new std::deque<StateInfo>(1));
