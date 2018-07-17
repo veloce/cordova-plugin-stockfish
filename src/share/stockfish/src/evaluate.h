@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2018 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #ifndef EVALUATE_H_INCLUDED
 #define EVALUATE_H_INCLUDED
 
+#include <atomic>
 #include <string>
 
 #include "types.h"
@@ -29,7 +30,7 @@ class Position;
 
 namespace Eval {
 
-const Value Tempo[VARIANT_NB] = { // Must be visible to search
+constexpr Value Tempo[VARIANT_NB] = { // Must be visible to search
   Value(20),
 #ifdef ANTI
   Value(20),
@@ -39,6 +40,12 @@ const Value Tempo[VARIANT_NB] = { // Must be visible to search
 #endif
 #ifdef CRAZYHOUSE
   Value(100),
+#endif
+#ifdef EXTINCTION
+  Value(20),
+#endif
+#ifdef GRID
+  Value(20),
 #endif
 #ifdef HORDE
   Value(20),
@@ -52,17 +59,16 @@ const Value Tempo[VARIANT_NB] = { // Must be visible to search
 #ifdef RACE
   Value(100),
 #endif
-#ifdef RELAY
+#ifdef THREECHECK
   Value(20),
 #endif
-#ifdef THREECHECK
+#ifdef TWOKINGS
   Value(20),
 #endif
 };
 
 std::string trace(const Position& pos);
 
-template<bool DoTrace = false>
 Value evaluate(const Position& pos);
 }
 

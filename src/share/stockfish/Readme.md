@@ -1,7 +1,46 @@
 ### Overview
 
-[![Build Status](https://travis-ci.org/official-stockfish/Stockfish.svg?branch=master)](https://travis-ci.org/official-stockfish/Stockfish)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/official-stockfish/Stockfish?svg=true)](https://ci.appveyor.com/project/mcostalba/stockfish)
+[![Build Status](https://travis-ci.org/ddugovic/Stockfish.svg?branch=master)](https://travis-ci.org/ddugovic/Stockfish)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/ddugovic/Stockfish?svg=true)](https://ci.appveyor.com/project/ddugovic/Stockfish)
+
+Multi Variant Stockfish is a [Stockfish](https://github.com/official-stockfish/Stockfish) fork specialized to play chess and some chess [variants](https://lichess.org/variant):
+- [Crazyhouse](https://lichess.org/variant/crazyhouse)
+- [Atomic](https://lichess.org/variant/atomic)
+- [Horde](https://lichess.org/variant/horde)
+- [King of the Hill](https://lichess.org/variant/kingOfTheHill)
+- [Racing Kings](https://lichess.org/variant/racingKings)
+- [Giveaway](https://lichess.org/variant/antichess)
+- [Three-Check](https://lichess.org/variant/threeCheck)
+- [Chess960](https://lichess.org/variant/chess960) (played natively by Official Stockfish)
+- Losers
+- Suicide
+- Loop
+- Extinction
+- Grid
+- Two Kings
+
+The project has the goal to develop and to improve the playing strength of some chess variants not already played natively by Stockfish. Once a month the maintainers will merge the new upstream Stockfish patches to also keep the playing strength for Chess and Chess960 up to date. If you are interested in playing only Chess and/or Chess960, or to play Chess and/or Chess960 at maximum strength possible, simply use Stockfish. Multi Variant Stockfish, though using the same code base for Chess and Chess960, is a bit slower.
+
+Multi Variant Stockfish is currently used in these [lichess.org](https://lichess.org/) projects: 
+- [lichess.org custom Stockfish](https://github.com/niklasf/Stockfish): as engine used to play against the users on lichess.org, also running on contributed remote servers for games analysis
+- [PNaCl Stockfish](https://github.com/niklasf/stockfish.pexe): as engine running in Chrome browser for your personal games analysis
+- [stockfish.js](https://github.com/niklasf/stockfish.js): compiled to JavaScript and WebAssembly for other browsers
+
+To get more information please visit the [Multi Variant Stockfish Wiki](https://github.com/ddugovic/Stockfish/wiki)
+
+
+### Download
+
+There are precompiled [binary releases](https://github.com/ddugovic/Stockfish/releases) and the following development snapshots:
+
+Operating System | Status | profile-build
+--- | --- | ---
+Linux | [![Travis CI](https://travis-ci.org/ddugovic/Stockfish.svg?branch=master)](https://travis-ci.org/ddugovic/Stockfish) | [x86_64](https://s3-us-west-2.amazonaws.com/variant-stockfish/ddugovic/master/stockfish-x86_64), [x86_64-modern](https://s3-us-west-2.amazonaws.com/variant-stockfish/ddugovic/master/stockfish-x86_64-modern), [x86_64-bmi2](https://s3-us-west-2.amazonaws.com/variant-stockfish/ddugovic/master/stockfish-x86_64-bmi2)
+OS X | [![Travis CI](https://travis-ci.org/ddugovic/Stockfish.svg?branch=master)](https://travis-ci.org/ddugovic/Stockfish) | [x86_64](https://s3-us-west-2.amazonaws.com/variant-stockfish/ddugovic/master/stockfish-osx-x86_64)
+Windows | [![Build status](https://ci.appveyor.com/api/projects/status/aeevqaqe30lrivka/branch/master?svg=true)](https://ci.appveyor.com/project/niklasf/stockfish-imnn1/branch/master) | [x86_64](https://s3-us-west-2.amazonaws.com/variant-stockfish/ddugovic/master/stockfish-windows-x86_64.exe), [x86_64-modern](https://s3-us-west-2.amazonaws.com/variant-stockfish/ddugovic/master/stockfish-windows-x86_64-modern.exe), [x86_64-bmi2](https://s3-us-west-2.amazonaws.com/variant-stockfish/ddugovic/master/stockfish-windows-x86_64-bmi2.exe)
+
+
+### Stockfish
 
 Stockfish is a free UCI chess engine derived from Glaurung 2.1. It is
 not a complete chess program and requires some UCI-compatible GUI
@@ -10,7 +49,7 @@ Partner or Fritz) in order to be used comfortably. Read the
 documentation for your GUI of choice for information about how to use
 Stockfish with it.
 
-This version of Stockfish supports up to 128 cores. The engine defaults
+This version of Stockfish supports up to 512 cores. The engine defaults
 to one search thread, so it is therefore recommended to inspect the value of
 the *Threads* UCI parameter, and to make sure it equals the number of CPU
 cores on your computer.
@@ -95,6 +134,14 @@ targets with corresponding descriptions. When not using the Makefile to
 compile (for instance with Microsoft MSVC) you need to manually
 set/unset some switches in the compiler command line; see file *types.h*
 for a quick reference.
+
+### Resource For Understanding the Code Base
+
+* [Chess Programming Wiki](https://chessprogramming.wikispaces.com) has good overall chess engines explanations 
+(techniques used here are well explained like hash maps etc), it was 
+also recommended by the [support team at stockfish.](http://support.stockfishchess.org/discussions/questions/1132-how-to-understand-stockfish-sources)
+
+* [Here](https://chessprogramming.wikispaces.com/Stockfish) you can find a set of features and techniques used by stockfish and each of them is explained at the wiki, however, it's a generic way rather than focusing on stockfish's own implementation, but it will still help you. 
 
 
 ### Terms of use
