@@ -56,4 +56,4 @@ Through XCode, in the build settings menu:
 
 To enable variants and skill, in custom compiler flags, `Other C++ flags` section, add:
 
-    -DKOTH -DTHREECHECK -DATOMIC -DHORDE -DRACE -DANTI -DCRAZYHOUSE -DSKILL
+    -DKOTH -DTHREECHECK -DATOMIC -DHORDE -DRACE -DANTI -DCRAZYHOUSE
