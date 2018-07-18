@@ -77,15 +77,16 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit
   Bitbases::init();
   Search::init();
   Pawns::init();
-  Threads.init();
-  Tablebases::init(Options["SyzygyPath"], CHESS_VARIANT);
+  Tablebases::init(CHESS_VARIANT, Options["SyzygyPath"]); // After Bitboards are set
+  Threads.set(Options["Threads"]);
+  Search::clear(); // After threads are up
   TT.resize(Options["Hash"]);
 }
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniExit(JNIEnv *env, jobject obj) {
   sync_cout << CMD_EXIT << sync_endl;
   reader.join();
-  Threads.exit();
+  Threads.set(0);
 }
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniCmd(JNIEnv *env, jobject obj, jstring jcmd) {
