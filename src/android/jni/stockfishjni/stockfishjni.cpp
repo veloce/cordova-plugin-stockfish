@@ -84,6 +84,7 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit
 }
 
 JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniExit(JNIEnv *env, jobject obj) {
+  UCI::command("quit");
   sync_cout << CMD_EXIT << sync_endl;
   reader.join();
   Threads.set(0);
