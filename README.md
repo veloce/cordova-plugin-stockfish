@@ -41,11 +41,9 @@ git subtree pull --prefix=src/share/stockfish --squash stockfish master
 
 ## Build android
 
-Build the native code in your project using:
+To build the native code in your project, just launch the gradle build using
+`cordova build` or `cordova run` command.
 
-```
-ndk-build -C app/platforms/android
-```
 
 ## Build IOS
 
