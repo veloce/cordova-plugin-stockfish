@@ -7,7 +7,7 @@
 #define LOGD(TAG,...) __android_log_print(ANDROID_LOG_DEBUG  , TAG,__VA_ARGS__)
 
 extern "C" {
-  JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit(JNIEnv *env, jobject obj);
+  JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit(JNIEnv *env, jobject obj, jlong memorySize);
   JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniExit(JNIEnv *env, jobject obj);
   JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniCmd(JNIEnv *env, jobject obj, jstring jcmd);
 };
@@ -62,7 +62,7 @@ auto readstdout = []() {
 
 std::thread reader;
 
-JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit(JNIEnv *env, jobject obj) {
+JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit(JNIEnv *env, jobject obj, jlong memorySize) {
   jobj = env->NewGlobalRef(obj);
   env->GetJavaVM(&jvm);
   jclass classStockfish = env->GetObjectClass(obj);
@@ -70,7 +70,14 @@ JNIEXPORT void JNICALL Java_org_lichess_stockfish_CordovaPluginStockfish_jniInit
 
   reader = std::thread(readstdout);
 
+  // Allow using 16th of the total memory for the hashtable
+  uint64_t hashSize = memorySize / 16;
+  // Convert to megabytes
+  hashSize /= 1024 * 1024;
+  hashSize = std::max((uint64_t)16, hashSize);
+
   UCI::init(Options);
+  Options["Hash"] = (int)hashSize;
   PSQT::init();
   Bitboards::init();
   Position::init();

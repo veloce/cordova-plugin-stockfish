@@ -2,6 +2,9 @@ package org.lichess.stockfish;
 
 import static java.util.concurrent.TimeUnit.*;
 
+import android.app.ActivityManager;
+import android.content.Context;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -76,7 +79,13 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
 
   private void init(CallbackContext callbackContext) {
     if(!isInit) {
-      jniInit();
+      // Get total device RAM for hashtable sizing
+      Context context = this.cordova.getActivity().getApplicationContext();
+      ActivityManager actManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+      ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
+      actManager.getMemoryInfo(memInfo);
+      long totalMemory = memInfo.totalMem;
+      jniInit(totalMemory);
       isInit = true;
     }
     callbackContext.success();
@@ -140,7 +149,7 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
     sendOutput(output);
   }
 
-  public native void jniInit();
+  public native void jniInit(long memorySize);
 
   public native void jniExit();
 
