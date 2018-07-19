@@ -1,6 +1,6 @@
 {
   "name": "cordova-plugin-stockfish",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Cordova interface to Stockfish chess engine.",
   "cordova": {
     "id": "cordova-plugin-stockfish",
