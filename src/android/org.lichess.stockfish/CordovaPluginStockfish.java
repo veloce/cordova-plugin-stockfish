@@ -118,7 +118,6 @@ public final class CordovaPluginStockfish extends CordovaPlugin {
 
   private void doExit() {
     if(isInit) {
-      jniCmd("stop");
       jniExit();
       isInit = false;
     }
