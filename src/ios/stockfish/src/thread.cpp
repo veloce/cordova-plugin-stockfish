@@ -25,7 +25,8 @@
 #include "search.h"
 #include "thread.h"
 #include "uci.h"
-#include "syzygy/tbprobe.h"
+// workaround for capacitor: everything is copied to a flat single dir
+#include "tbprobe.h"
 
 #ifndef _WIN32
 void* run_idle_loop(void* thread) {

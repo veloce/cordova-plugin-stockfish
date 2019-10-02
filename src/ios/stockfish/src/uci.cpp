@@ -29,7 +29,8 @@
 #include "thread.h"
 #include "timeman.h"
 #include "uci.h"
-#include "syzygy/tbprobe.h"
+// workaround for capacitor: everything is copied to a flat single dir
+#include "tbprobe.h"
 
 using namespace std;
 

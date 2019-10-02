@@ -22,7 +22,8 @@
 
 #include <ostream>
 
-#include "../search.h"
+// workaround for capacitor: everything is copied to a flat single dir
+#include "search.h"
 
 namespace Tablebases {
 

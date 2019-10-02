@@ -28,12 +28,13 @@
 #include <sstream>
 #include <type_traits>
 
-#include "../bitboard.h"
-#include "../movegen.h"
-#include "../position.h"
-#include "../search.h"
-#include "../thread_win32.h"
-#include "../types.h"
+// workaround for capacitor: everything is copied to a flat single dir
+#include "bitboard.h"
+#include "movegen.h"
+#include "position.h"
+#include "search.h"
+#include "thread_win32.h"
+#include "types.h"
 
 #include "tbprobe.h"
 
