@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-stockfish" version="1.8.0">
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="capacitor-cordova-plugin-stockfish" version="2.0.0">
   <name>Cordova Stockfish Plugin</name>
-  <description>Cordova interface to Stockfish chess engine.</description>
-  <author>Sébastien Renault</author>
+  <description>Cordova interface to Stockfish chess engine, adapted to capacitor.</description>
+  <author>Vincent Velociter</author>
   <keywords>cordova,stockfish</keywords>
   <license>MIT</license>
 

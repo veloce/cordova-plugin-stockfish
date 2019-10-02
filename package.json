@@ -1,22 +1,17 @@
 {
-  "name": "cordova-plugin-stockfish",
-  "version": "1.8.0",
-  "description": "Cordova interface to Stockfish chess engine.",
+  "name": "capacitor-cordova-plugin-stockfish",
+  "version": "2.0.0",
+  "description": "Cordova interface to Stockfish chess engine, adapted to capacitor.",
   "cordova": {
-    "id": "cordova-plugin-stockfish",
+    "id": "capacitor-cordova-plugin-stockfish",
     "platforms": [
       "android",
       "ios"
     ]
   },
-  "engines": {
-    "cordovaDependencies": {
-      "1.7.0": { "cordova-android": ">=7.0.0" }
-    }
-  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/veloce/cordova-plugin-stockfish.git"
+    "url": "git+https://github.com/veloce/cordova-plugin-stockfish.git#capacitor"
   },
   "keywords": [
     "cordova",
@@ -31,7 +26,7 @@
     "cordova-android",
     "cordova-ios"
   ],
-  "author": "Sébastien Renault",
+  "author": "Vincent Velociter",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/veloce/cordova-plugin-stockfish/issues"
