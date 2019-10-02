@@ -57,9 +57,8 @@ namespace stockfishios
     Bitbases::init();
     Search::init();
     Pawns::init();
-    Tablebases::init(CHESS_VARIANT, Options["SyzygyPath"]); // After Bitboards are set
-    Threads.set(Options["Threads"]);
-    Search::clear(); // After threads are up
+    Threads.init();
+    Tablebases::init(Options["SyzygyPath"], CHESS_VARIANT);
     TT.resize(Options["Hash"]);
   }
 
@@ -70,6 +69,6 @@ namespace stockfishios
   void exit() {
     sync_cout << CMD_EXIT << sync_endl;
     reader.join();
-    Threads.set(0);
+    Threads.exit();
   }
 }

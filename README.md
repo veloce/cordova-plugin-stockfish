@@ -32,11 +32,12 @@ Stockfish.output(function(message) {
 Stockfish.exit().then(() => console.log('engine successfully exited'))
 ```
 
-## Upgrade stockfish (lichess)
+## Upgrade stockfish
 
 ```
+# example for android
 git remote add stockfish https://github.com/ddugovic/Stockfish.git
-git subtree pull --prefix=src/share/stockfish --squash stockfish master
+git subtree pull --prefix=src/android/jni/stockfish --squash stockfish master
 ```
 
 ## Build android

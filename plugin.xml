@@ -16,7 +16,6 @@
     <source-file src="src/android/org.lichess.stockfish/CordovaPluginStockfish.java" target-dir="src/org/lichess/stockfish" />
     <source-file src="src/android/jni" target-dir="app/src/main" />
     <source-file src="src/share/threadbuf.h" target-dir="app/src/main/jni/stockfishjni" />
-    <source-file src="src/share/stockfish/src" target-dir="app/src/main/jni/stockfish" />
 
     <config-file target="res/xml/config.xml" parent="/*">
       <feature name="CordovaPluginStockfish">
@@ -38,42 +37,42 @@
     <header-file src="src/ios/CordovaPluginStockfishios.h" />
     <header-file src="src/share/threadbuf.h" />
 
-    <header-file src="src/share/stockfish/src/bitboard.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/endgame.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/evaluate.h" target-dir="./stockfish"/>
-    <header-file src="src/share/stockfish/src/material.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/misc.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/movegen.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/movepick.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/pawns.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/position.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/search.h" target-dir="./stockfish"/>
-    <header-file src="src/share/stockfish/src/thread.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/thread_win32.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/timeman.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/tt.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/uci.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/types.h" target-dir="./stockfish" />
-    <header-file src="src/share/stockfish/src/syzygy/tbprobe.h" target-dir="./stockfish/syzygy" />
+    <header-file src="src/ios/stockfish/src/bitboard.h" />
+    <header-file src="src/ios/stockfish/src/endgame.h" />
+    <header-file src="src/ios/stockfish/src/evaluate.h"/>
+    <header-file src="src/ios/stockfish/src/material.h" />
+    <header-file src="src/ios/stockfish/src/misc.h" />
+    <header-file src="src/ios/stockfish/src/movegen.h" />
+    <header-file src="src/ios/stockfish/src/movepick.h" />
+    <header-file src="src/ios/stockfish/src/pawns.h" />
+    <header-file src="src/ios/stockfish/src/position.h" />
+    <header-file src="src/ios/stockfish/src/search.h"/>
+    <header-file src="src/ios/stockfish/src/thread.h" />
+    <header-file src="src/ios/stockfish/src/thread_win32.h" />
+    <header-file src="src/ios/stockfish/src/timeman.h" />
+    <header-file src="src/ios/stockfish/src/tt.h" />
+    <header-file src="src/ios/stockfish/src/uci.h" />
+    <header-file src="src/ios/stockfish/src/types.h" />
+    <header-file src="src/ios/stockfish/src/syzygy/tbprobe.h" />
 
-    <source-file src="src/share/stockfish/src/benchmark.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/bitbase.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/bitboard.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/endgame.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/evaluate.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/material.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/misc.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/movegen.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/movepick.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/pawns.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/position.cpp" target-dir="./stockfish"/>
-    <source-file src="src/share/stockfish/src/psqt.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/search.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/thread.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/timeman.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/tt.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/uci.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/ucioption.cpp" target-dir="./stockfish" />
-    <source-file src="src/share/stockfish/src/syzygy/tbprobe.cpp" target-dir="./stockfish/syzygy" />
+    <source-file src="src/ios/stockfish/src/benchmark.cpp" />
+    <source-file src="src/ios/stockfish/src/bitbase.cpp" />
+    <source-file src="src/ios/stockfish/src/bitboard.cpp" />
+    <source-file src="src/ios/stockfish/src/endgame.cpp" />
+    <source-file src="src/ios/stockfish/src/evaluate.cpp" />
+    <source-file src="src/ios/stockfish/src/material.cpp" />
+    <source-file src="src/ios/stockfish/src/misc.cpp" />
+    <source-file src="src/ios/stockfish/src/movegen.cpp" />
+    <source-file src="src/ios/stockfish/src/movepick.cpp" />
+    <source-file src="src/ios/stockfish/src/pawns.cpp" />
+    <source-file src="src/ios/stockfish/src/position.cpp"/>
+    <source-file src="src/ios/stockfish/src/psqt.cpp" />
+    <source-file src="src/ios/stockfish/src/search.cpp" />
+    <source-file src="src/ios/stockfish/src/thread.cpp" />
+    <source-file src="src/ios/stockfish/src/timeman.cpp" />
+    <source-file src="src/ios/stockfish/src/tt.cpp" />
+    <source-file src="src/ios/stockfish/src/uci.cpp" />
+    <source-file src="src/ios/stockfish/src/ucioption.cpp" />
+    <source-file src="src/ios/stockfish/src/syzygy/tbprobe.cpp" />
   </platform>
 </plugin>
