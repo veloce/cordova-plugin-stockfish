@@ -14,8 +14,8 @@
     <framework src="build-extras-stockfish.gradle" custom="true" type="gradleReference" />
 
     <source-file src="src/android/org.lichess.stockfish/CordovaPluginStockfish.java" target-dir="src/org/lichess/stockfish" />
-    <source-file src="src/android/jni" target-dir="app/src/main" />
-    <source-file src="src/share/threadbuf.h" target-dir="app/src/main/jni/stockfishjni" />
+    <source-file src="src/android/jni" target-dir="." />
+    <source-file src="src/share/threadbuf.h" target-dir="./jni/stockfishjni" />
 
     <config-file target="res/xml/config.xml" parent="/*">
       <feature name="CordovaPluginStockfish">

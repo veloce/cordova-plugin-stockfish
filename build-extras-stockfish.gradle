@@ -6,6 +6,6 @@ android.defaultConfig {
 
 android.externalNativeBuild {
     ndkBuild {
-        path 'src/main/jni/Android.mk'
+        path '../capacitor-cordova-android-plugin/src/main/jni/Android.mk'
     }
 }
