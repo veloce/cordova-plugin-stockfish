@@ -22,6 +22,7 @@
 #include <sstream>
 #include <string>
 
+#include "definitions.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "position.h"

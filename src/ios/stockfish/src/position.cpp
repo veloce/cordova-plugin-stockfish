@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <sstream>
 
+#include "definitions.h"
 #include "bitboard.h"
 #include "misc.h"
 #include "movegen.h"

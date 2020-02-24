@@ -20,6 +20,7 @@
 
 #include <cassert>
 
+#include "definitions.h"
 #include "movepick.h"
 #include "thread.h"
 

@@ -20,6 +20,7 @@
 
 #include <algorithm>
 
+#include "definitions.h"
 #include "types.h"
 
 Value PhaseLimit[VARIANT_NB][PHASE_NB] = {

@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cassert>
 
+#include "definitions.h"
 #include "bitboard.h"
 #include "pawns.h"
 #include "position.h"

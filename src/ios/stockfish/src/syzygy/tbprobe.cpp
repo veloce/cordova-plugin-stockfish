@@ -29,6 +29,7 @@
 #include <type_traits>
 
 // workaround for capacitor: everything is copied to a flat single dir
+#include "definitions.h"
 #include "bitboard.h"
 #include "movegen.h"
 #include "position.h"

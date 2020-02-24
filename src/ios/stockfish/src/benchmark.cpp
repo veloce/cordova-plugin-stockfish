@@ -23,6 +23,7 @@
 #include <istream>
 #include <vector>
 
+#include "definitions.h"
 #include "misc.h"
 #include "position.h"
 #include "search.h"

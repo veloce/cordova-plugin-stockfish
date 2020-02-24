@@ -23,6 +23,7 @@
 
 #include <string>
 
+#include "definitions.h"
 #include "types.h"
 
 class Position;

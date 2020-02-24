@@ -26,6 +26,7 @@
 #include <memory> // For std::unique_ptr
 #include <string>
 
+#include "definitions.h"
 #include "bitboard.h"
 #include "types.h"
 

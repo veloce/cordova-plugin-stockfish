@@ -20,6 +20,7 @@
 
 #include <cassert>
 
+#include "definitions.h"
 #include "movegen.h"
 #include "position.h"
 

@@ -46,6 +46,8 @@
 #include <string>
 #include <vector>
 
+#include "definitions.h"
+
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
 #pragma warning(disable: 4127) // Conditional expression is constant

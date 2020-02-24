@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <sstream>
 
+#include "definitions.h"
 #include "bitboard.h"
 #include "evaluate.h"
 #include "material.h"
