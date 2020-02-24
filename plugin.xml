@@ -37,6 +37,7 @@
     <header-file src="src/ios/CordovaPluginStockfishios.h" />
     <header-file src="src/share/threadbuf.h" />
 
+    <header-file src="src/ios/stockfish/src/definitions.h" />
     <header-file src="src/ios/stockfish/src/bitboard.h" />
     <header-file src="src/ios/stockfish/src/endgame.h" />
     <header-file src="src/ios/stockfish/src/evaluate.h"/>
