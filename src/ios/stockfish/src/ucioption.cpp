@@ -22,6 +22,7 @@
 #include <cassert>
 #include <ostream>
 
+#include "definitions.h"
 #include "misc.h"
 #include "search.h"
 #include "thread.h"

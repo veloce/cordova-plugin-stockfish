@@ -1,3 +1,4 @@
+#define SKILL
 #define KOTH
 #define THREECHECK
 #define ATOMIC
